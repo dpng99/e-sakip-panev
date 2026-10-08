@@ -12,6 +12,7 @@ class LkeSubkomponen extends Model
         'komponen_id',
         'kode',
         'nama',
+        'bobot',
         'tahun',
     ];
 
@@ -22,6 +23,10 @@ class LkeSubkomponen extends Model
 
     public function kriteria()
     {
-        return $this->hasMany(LkeKriteria::class, 'subkomponen_id', 'kode');
+        $relation = $this->hasMany(LkeKriteria::class, 'subkomponen_id', 'kode');
+        if (!empty($this->tahun)) {
+            $relation->where('tahun', $this->tahun);
+        }
+        return $relation;
     }
 }

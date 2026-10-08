@@ -166,6 +166,7 @@ Route::middleware(['auth'])->group(function () {
     // === Sistem LKE Baru (Evaluasi Pengawasan & Evidence Mapping) ===
     Route::get('/lke/evaluasi', [LkeEvaluasiController::class, 'index'])->name('lke.evaluasi.index');
     Route::post('/lke/evaluasi/save-score', [LkeEvaluasiController::class, 'saveScore'])->name('lke.evaluasi.save_score');
+    Route::post('/lke/evaluasi/save-koefisien', [LkeEvaluasiController::class, 'saveSubkomponenKoefisien'])->name('lke.evaluasi.save_koefisien');
     Route::get('/lke/evidence-mapping', [LkeEvidenceMappingController::class, 'index'])->name('lke.evidence_mapping.index');
     Route::get('/lke/evidence-mapping/detail/{kode}', [LkeEvidenceMappingController::class, 'getCriteriaDetail'])->name('lke.evidence_mapping.detail');
     Route::post('/lke/evidence-mapping/update/{kode}', [LkeEvidenceMappingController::class, 'updateMapping'])->name('lke.evidence_mapping.update');

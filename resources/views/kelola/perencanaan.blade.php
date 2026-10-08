@@ -8,19 +8,45 @@
     @endphp
     <div class="content" id="content">
         <div class="container-fluid">
-            <div class="card" style="width: 100%;">
-                <div class="card border-light shadow-sm" style="background-color: #e6bf3e;">
-                    <center>
-                        <h2><b>Perencanaan</b></h2>
-                    </center>
+            <!-- Page Header Hero Card -->
+            <div class="card page-hero-card border-0 mb-4 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-warning text-dark px-2.5 py-1 fw-bold rounded-pill" style="font-size: 0.75rem;">
+                                    <i class="bi bi-shield-check me-1"></i>TATA KELOLA AKIP
+                                </span>
+                                <span class="badge bg-white bg-opacity-25 text-white px-2.5 py-1 rounded-pill" style="font-size: 0.75rem;">
+                                    Tahun Anggaran {{ $tahun }}
+                                </span>
+                            </div>
+                            <h2 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                                <i class="bi bi-calendar2-range-fill text-warning"></i> Perencanaan Kinerja
+                            </h2>
+                            <p class="text-white text-opacity-80 mb-0 small">
+                                Pengelolaan dokumen Renstra, IKU, Renja, RKAKL, DIPA, Rencana Aksi, dan Perjanjian Kinerja Satuan Kerja.
+                            </p>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <div class="bg-white bg-opacity-10 backdrop-blur rounded-3 px-3 py-2 text-white border border-white border-opacity-20 text-md-end">
+                                <small class="d-block text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem;">Satuan Kerja Aktif</small>
+                                <span class="fw-bold fs-6">{{ session('satkernama', 'Nama Satker') }}</span>
+                                <span class="badge bg-warning text-dark ms-1">ID: {{ session('id_satker') }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+            </div>
+
+            <div class="card border-0 shadow-sm" style="width: 100%;">
+                <div class="card-header bg-white border-bottom p-0 px-3">
                     <!-- Cek tab aktif dari session atau default ke renstra -->
                     @php
                         $activeTab = session('active_tab', 'renstra'); // Default ke renstra
                     @endphp
                     <!-- Tabs Navigation -->
-                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <ul class="nav nav-tabs border-0" id="myTab" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link {{ $activeTab == 'renstra' ? 'active' : '' }}"
                                 id="renstra-tab" data-bs-toggle="tab" href="#renstra" role="tab" aria-controls="renstra"

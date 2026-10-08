@@ -11,6 +11,9 @@ class SinoriSakipIndikator extends Model
 
     protected $table = 'sinori_sakip_indikator'; // Nama tabel
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'tipe',
         'link',

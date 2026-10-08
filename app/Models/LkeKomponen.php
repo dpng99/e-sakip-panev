@@ -11,6 +11,7 @@ class LkeKomponen extends Model
     protected $fillable = [
         'no',
         'nama',
+        'bobot',
         'tahun',
     ];
 

@@ -28,7 +28,11 @@ class LkeKriteria extends Model
 
     public function parameters()
     {
-        return $this->hasMany(LkeParameter::class, 'kriteria_id', 'kode');
+        $relation = $this->hasMany(LkeParameter::class, 'kriteria_id', 'kode');
+        if (!empty($this->tahun)) {
+            $relation->where('tahun', $this->tahun);
+        }
+        return $relation;
     }
 
     public function gabungan()

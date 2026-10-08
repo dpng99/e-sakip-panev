@@ -9,15 +9,15 @@ use App\Models\Pengukuran;
 class PengukuranController extends Controller
 { 
     /**
-     * Pastikan hanya Administrator atau Kejati yang dapat mengakses menu Pengukuran.
+     * Memastikan hanya pengguna yang berwenang dapat mengakses menu Pengukuran.
      */
     protected function checkAccess()
     {
         $level = session('id_sakip_level');
         $satker = session('id_satker');
-        $allowed = in_array($satker, ['admin', '999999']) || $level == '99' || $level == '2' || $level == 99 || $level == 2;
+        $allowed = in_array($satker, ['admin', '999999']) || in_array((int)$level, [1, 2, 3, 4, 99]);
         if (!$allowed) {
-            abort(403, 'Akses Ditolak: Menu Pengukuran hanya dapat diakses oleh Administrator atau Kejati.');
+            abort(403, 'Akses Ditolak: Anda tidak memiliki akses ke Menu Pengukuran.');
         }
     }
 
@@ -100,7 +100,7 @@ class PengukuranController extends Controller
     };
 
     foreach ($subIndikatorList as $subIndikator) {
-        $indikatorId = $request->input("indikator_id.$subIndikator");
+        $indikatorId = (string) $request->input("indikator_id.$subIndikator");
         $indikator   = Indikator::find($indikatorId);
 
         if (!$indikator) {
@@ -194,11 +194,19 @@ class PengukuranController extends Controller
     {
         $this->checkAccess();
 
-        $idSatker = auth()->user()->id_satker;
+        $idSatker = session('id_satker') ?? auth()->user()?->id_satker;
+        $tahun = session('tahun_terpilih');
+        $khusus = session('tw4_khusus', false) ? 1 : 0;
 
-        $pengukuran = \App\Models\Pengukuran::where('indikator_id', $indikatorId)
-            ->where('id_satker', $idSatker)
-            ->get(['sub_indikator', 'bulan', 'perhitungan', 'sisa_tahun_lalu', 'capaian']);
+        $query = \App\Models\Pengukuran::where('indikator_id', (string) $indikatorId)
+            ->where('id_satker', $idSatker);
+
+        if ($tahun) {
+            $query->where('tahun', $tahun);
+        }
+        $query->where('khusus', $khusus);
+
+        $pengukuran = $query->get(['sub_indikator', 'bulan', 'perhitungan', 'sisa_tahun_lalu', 'capaian']);
 
         return response()->json($pengukuran);
     }

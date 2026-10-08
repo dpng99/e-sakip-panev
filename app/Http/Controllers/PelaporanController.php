@@ -94,6 +94,13 @@ class PelaporanController extends Controller
     {
         $tahun = session('tahun_terpilih');
         $level = session('id_sakip_level');
+        $id_satker = session('id_satker');
+        if (in_array((int)$level, [0, 99]) && $id_satker) {
+            $satkerUser = DB::table('sinori_login')->where('id_satker', $id_satker)->first();
+            if ($satkerUser && !empty($satkerUser->id_sakip_level)) {
+                $level = $satkerUser->id_sakip_level;
+            }
+        }
         $khusus = session('tw4_khusus', false) ? 1 : 0;
 
         // Ambil semua indikator dengan filter rumpun dan tahun
@@ -137,6 +144,12 @@ class PelaporanController extends Controller
         $bulan_awal = ($tw - 1) * 3 + 1;
         $bulan_akhir = $bulan_awal + 2;
         $level = session('id_sakip_level');
+        if (in_array((int)$level, [0, 99]) && $id_satker) {
+            $satkerUser = DB::table('sinori_login')->where('id_satker', $id_satker)->first();
+            if ($satkerUser && !empty($satkerUser->id_sakip_level)) {
+                $level = $satkerUser->id_sakip_level;
+            }
+        }
         $khusus = session('tw4_khusus', false) ? 1 : 0;
 
         // === Ambil indikator sesuai rumpun, tahun, dan lingkup level ===
@@ -161,6 +174,7 @@ class PelaporanController extends Controller
         $data = [];
 
         foreach ($indikators as $indikator) {
+            $indikatorId = (string) $indikator->id;
             $persentase = 0;
 
             // === Tentukan label penghitungan (default: Ditangani, Diselesaikan) ===
@@ -180,7 +194,7 @@ class PelaporanController extends Controller
                 $persentase = DB::table('pengukuran')
                     ->where('id_satker', $id_satker)
                     ->where('tahun', $tahun)
-                    ->where('indikator_id', $indikator->id)
+                    ->where('indikator_id', $indikatorId)
                     ->where('bulan', $lastMonth)
                     ->where('khusus', $khusus)
                     ->orderBy('id', 'desc')
@@ -190,7 +204,7 @@ class PelaporanController extends Controller
                 $rows = DB::table('pengukuran')
                     ->where('id_satker', $id_satker)
                     ->where('tahun', $tahun)
-                    ->where('indikator_id', $indikator->id)
+                    ->where('indikator_id', $indikatorId)
                     ->where('khusus', $khusus)
                     ->whereBetween('bulan', [1, $bulan_akhir]) // kumulatif s.d akhir TW
                     ->get(['sub_indikator', 'perhitungan']);
@@ -226,7 +240,7 @@ class PelaporanController extends Controller
             $target_pk = DB::table('target')
                 ->where('id_satker', $id_satker)
                 ->where('tahun', $tahun)
-                ->where('indikator_id', $indikator->id)
+                ->where('indikator_id', $indikatorId)
                 ->where('khusus', $khusus)
                 ->value('target_tahun') ?? 0;
 
@@ -239,7 +253,7 @@ class PelaporanController extends Controller
             $first = DB::table('pengukuran')
                 ->where('id_satker', $id_satker)
                 ->where('tahun', $tahun)
-                ->where('indikator_id', $indikator->id)
+                ->where('indikator_id', $indikatorId)
                 ->where('bulan', $bulan_akhir)
                 ->where(function ($q) {
                     $q->whereNotNull('faktor')
@@ -252,12 +266,12 @@ class PelaporanController extends Controller
 
 
             $data[] = [
-                'indikator_id' => $indikator->id,
+                'indikator_id' => $indikatorId,
                 'indikator_nama' => $indikator->indikator_nama,
                 'indikator_penghitungan' => $indikator->indikator_penghitungan ?: 'Ditangani, Diselesaikan',
-                'persentase' => $persentase,
-                'target_pk' => $target_pk,
-                'capaian_pk' => $capaian_pk,
+                'persentase' => (float) $persentase,
+                'target_pk' => (float) $target_pk,
+                'capaian_pk' => (float) $capaian_pk,
                 'faktor' => $first->faktor ?? '',
                 'langkah' => $first->langkah_optimalisasi ?? '',
             ];
@@ -272,17 +286,20 @@ class PelaporanController extends Controller
     {
         $khusus = session('tw4_khusus', false) ? 1 : 0;
         $request->validate([
-            'indikator_id' => 'required|integer',
+            'indikator_id' => 'required',
             'faktor' => 'nullable|string',
             'langkah' => 'nullable|string',
             'triwulan' => 'required|integer|min:1|max:4',
         ]);
 
         $bulan_akhir = ($request->triwulan - 1) * 3 + 3;
+        $indikatorId = (string) $request->indikator_id;
+        $idSatker = session('id_satker');
+        $tahun = session('tahun_terpilih');
 
-        $pengukuran = Pengukuran::where('id_satker', session('id_satker'))
-            ->where('tahun', session('tahun_terpilih'))
-            ->where('indikator_id', $request->indikator_id)
+        $pengukuran = Pengukuran::where('id_satker', $idSatker)
+            ->where('tahun', $tahun)
+            ->where('indikator_id', $indikatorId)
             ->where('bulan', $bulan_akhir)
             ->where('khusus', $khusus)
             ->first();
@@ -294,12 +311,21 @@ class PelaporanController extends Controller
 
             return response()->json(['status' => 'success']);
         } else {
-            // Kirim response error
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Masih terdapat data indikator di Perjanjian Kerja Perencanaan atau di Pengukuran yang belum diisi.'
+            $indikator = Indikator::find($indikatorId);
+            $subIndikator = $indikator ? explode(',', $indikator->sub_indikator)[0] : '';
 
-            ], 404);
+            Pengukuran::create([
+                'indikator_id' => $indikatorId,
+                'id_satker' => $idSatker,
+                'tahun' => $tahun,
+                'bulan' => $bulan_akhir,
+                'khusus' => $khusus,
+                'sub_indikator' => trim($subIndikator),
+                'faktor' => $request->faktor,
+                'langkah_optimalisasi' => $request->langkah,
+            ]);
+
+            return response()->json(['status' => 'success']);
         }
     }
 

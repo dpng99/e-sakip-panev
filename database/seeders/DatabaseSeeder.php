@@ -15,10 +15,11 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
          $this->call([
-       LkeKomponenSeeder::class,
-        LkeSubKomponenSeeder::class,
-        //LkeKriteriaSeeder::class,
-    ]);
+             LkeKomponenSeeder::class,
+             LkeSubKomponenSeeder::class,
+             //LkeKriteriaSeeder::class,
+             LkeParameterSeeder::class,
+         ]);
 
     }
 }

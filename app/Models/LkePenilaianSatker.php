@@ -17,6 +17,11 @@ class LkePenilaianSatker extends Model
         'komponen_id',
         'subkomponen_id',
         'kriteria_id',
+        'pm_parameter_id',
+        'pm_nilai',
+        'pm_skor',
+        'pm_catatan',
+        'pm_evaluator_id',
         'parameter_id',
         'nilai',
         'skor',
@@ -32,5 +37,10 @@ class LkePenilaianSatker extends Model
     public function parameter()
     {
         return $this->belongsTo(LkeParameter::class, 'parameter_id', 'id');
+    }
+
+    public function pmParameter()
+    {
+        return $this->belongsTo(LkeParameter::class, 'pm_parameter_id', 'id');
     }
 }

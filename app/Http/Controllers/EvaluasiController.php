@@ -8,6 +8,9 @@ use App\Models\LheAkip;
 use App\Models\MonevRenaksi;
 use App\Models\TlLheAkip;
 use App\Models\DataLke1;
+use App\Models\LkeKomponen;
+use App\Models\LkeBuktidukung;
+use App\Helpers\LkeEvidenceHelper;
 
 class EvaluasiController extends Controller
 {
@@ -110,6 +113,81 @@ class EvaluasiController extends Controller
             return $item;
         });
 
+        // Load Unified LKE Hierarchy and Evidence for synchronized UX (matching Penilaian Mandiri)
+        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
+        $komponenList = LkeKomponen::where('tahun', $targetTahun)
+            ->with([
+                'subkomponen' => function ($q) use ($targetTahun) {
+                    $q->where('tahun', $targetTahun);
+                },
+                'subkomponen.kriteria' => function ($q) use ($targetTahun) {
+                    $q->where('tahun', $targetTahun);
+                },
+            ])
+            ->orderBy('id')
+            ->get();
+
+        $satkerBukti = LkeEvidenceHelper::getUnifiedSatkerEvidences($idSatker, $tahun);
+        $masterBukti = LkeBuktidukung::pluck('dokumen', 'id');
+
+        // Mapping format file & kebutuhan kriteria berdasarkan kode kriteria bersih
+        $legacyKriteria = DB::table('kriteria')->get();
+        $formatMap = [];
+        $needMap = [];
+        foreach ($legacyKriteria as $lk) {
+            $cleanCode = LkeEvidenceHelper::cleanKriteriaKode($lk->kode ?: $lk->id);
+            if (!isset($formatMap[$cleanCode])) {
+                $formatMap[$cleanCode] = [];
+                $needMap[$cleanCode] = [];
+            }
+            if ($lk->format_nama_file) {
+                foreach (explode(';', $lk->format_nama_file) as $f) {
+                    $f = trim($f);
+                    if ($f && !in_array($f, $formatMap[$cleanCode])) {
+                        $formatMap[$cleanCode][] = $f;
+                    }
+                }
+            }
+            if ($lk->bukti_pengisian) {
+                foreach (explode(';', $lk->bukti_pengisian) as $n) {
+                    $n = trim($n);
+                    if ($n && !in_array($n, $needMap[$cleanCode])) {
+                        $needMap[$cleanCode][] = $n;
+                    }
+                }
+            }
+        }
+
+        // Summary metrics kelengkapan bukti dukung LKE yang sinkron dengan Penilaian Mandiri
+        $allCriteria = $komponenList->flatMap(fn($k) => $k->subkomponen->flatMap(fn($s) => $s->kriteria));
+        $totalKriteriaLke = $allCriteria->count();
+        $lengkapCount = 0;
+        foreach ($allCriteria as $cr) {
+            $reqIds = $cr->bukti_dukung_ids;
+            if (empty($reqIds)) {
+                $lengkapCount++;
+                continue;
+            }
+            $crEvidences = $satkerBukti->get($cr->kode, collect());
+            $allMet = true;
+            foreach ($reqIds as $bId) {
+                $has = $crEvidences->first(function ($item) use ($bId) {
+                    return $item->buktidukung_id == $bId
+                        || $item->kode_bukti == $bId
+                        || LkeEvidenceHelper::matchesBuktiId($item->link_bukti_dukung, (int)$bId);
+                });
+                if (!$has) {
+                    $allMet = false;
+                    break;
+                }
+            }
+            if ($allMet) {
+                $lengkapCount++;
+            }
+        }
+        $belumCount = $totalKriteriaLke - $lengkapCount;
+        $persenLengkap = $totalKriteriaLke > 0 ? round(($lengkapCount / $totalKriteriaLke) * 100, 1) : 0;
+
         $sections = [
             'Perencanaan' => DataLke1::where('subkomponen_id', 'LIKE', '1.%')->get(),
             'Pengukuran'  => DataLke1::where('subkomponen_id', 'LIKE', '2.%')->get(),
@@ -118,14 +196,23 @@ class EvaluasiController extends Controller
         ];
 
         return view('kelola.evaluasi', [
-            'tahun' => $tahun,
-            'lheAkipFiles' => $lheAkipFiles,
+            'tahun'             => $tahun,
+            'lheAkipFiles'      => $lheAkipFiles,
             'monevRenaksiFiles' => $monevRenaksiFiles,
-            'tlLheAkipFiles' => $tlLheAkipFiles,
-            'komponen' => $komponen,
-            'idSatker' => $idSatker,
-            'buktiDukung' => $buktiDukung,
-            'sections' => $sections,
+            'tlLheAkipFiles'    => $tlLheAkipFiles,
+            'komponen'          => $komponen,
+            'komponenList'      => $komponenList,
+            'satkerBukti'       => $satkerBukti,
+            'masterBukti'       => $masterBukti,
+            'formatMap'         => $formatMap,
+            'needMap'           => $needMap,
+            'idSatker'          => $idSatker,
+            'buktiDukung'       => $buktiDukung,
+            'sections'          => $sections,
+            'totalKriteriaLke'  => $totalKriteriaLke,
+            'lengkapCount'      => $lengkapCount,
+            'belumCount'        => $belumCount,
+            'persenLengkap'     => $persenLengkap,
         ]);
     }
 
@@ -259,16 +346,39 @@ class EvaluasiController extends Controller
         $idKriteria    = $request->input('id_kriteria');
         $idSatker      = session('id_satker');
         $idKomponen    = $request->input('id_komponen');
-        $idSubKomponen = $request->input('id_subkomponen'); // samakan naming
-        $tahun         = session('tahun_terpilih');
+        $idSubKomponen = $request->input('id_subkomponen');
+        $tahun         = session('tahun_terpilih', date('Y'));
 
-        $kriteria = DB::table('kriteria')->where('id', $idKriteria)->first();
-        if (!$kriteria) {
-            return response()->json(['success' => false, 'message' => 'Kriteria tidak ditemukan.']);
+        // Ambil formats jika dikirimkan langsung
+        $formats = [];
+        if ($request->has('formats') && !empty($request->input('formats'))) {
+            $rawFormats = $request->input('formats');
+            $formats = is_array($rawFormats) ? $rawFormats : json_decode($rawFormats, true);
         }
 
-        $formats = array_filter(array_map('trim', explode(';', $kriteria->format_nama_file ?? '')));
-        $verifFormats = collect($formats)->filter(fn($f) => stripos($f, '(perubahan terakhir)') !== false);
+        // Jika formats kosong, cari dari tabel kriteria (support id, kode, atau prefix)
+        if (empty($formats)) {
+            $matchingKriteria = DB::table('kriteria')
+                ->where('id', $idKriteria)
+                ->orWhere('kode', $idKriteria)
+                ->orWhere('id', 'like', $idKriteria . '.%')
+                ->get();
+
+            foreach ($matchingKriteria as $mk) {
+                if ($mk->format_nama_file) {
+                    foreach (explode(';', $mk->format_nama_file) as $f) {
+                        $f = trim($f);
+                        if ($f && !in_array($f, $formats)) {
+                            $formats[] = $f;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($formats)) {
+            return response()->json(['success' => false, 'message' => 'Format dokumen kriteria tidak ditemukan.']);
+        }
 
         $mapTable = [
             'renstra'     => ['table' => 'sinori_sakip_renstra',    'prefix' => 'renstra'],
@@ -282,7 +392,7 @@ class EvaluasiController extends Controller
             'rastaff'     => ['table' => 'sinori_sakip_rastaff',    'prefix' => 'rastaff'],
             'renaksieval' => ['table' => 'sinori_sakip_renaksieval', 'prefix' => 'renaksieval'],
             'lhe'         => ['table' => 'lhe',                     'prefix' => 'lhe'],
-            'tllhe' => ['table' => 'tl_lhe_akip',             'prefix' => 'tllhe'],
+            'tllhe'       => ['table' => 'tl_lhe_akip',             'prefix' => 'tllhe'],
         ];
 
         $results = [];
@@ -305,44 +415,39 @@ class EvaluasiController extends Controller
                     ? (($tahunFormat == 2024) ? 'P1' : 'P2')
                     : $tahunFormat;
 
-                $dokumen = DB::table($source['table'])
+                $query = DB::table($source['table'])
                     ->where('id_satker', $idSatker)
-                    ->where('id_periode', $idPeriode)
-                    ->orderByDesc('id_perubahan')
-                    ->first();
+                    ->where('id_periode', $idPeriode);
 
-                if (in_array($source['table'], ['lakip', 'restaff', 'renaksieval']) && $idTriwulan) {
+                if (in_array($source['table'], ['lakip', 'restaff', 'renaksieval', 'sinori_sakip_lakip', 'sinori_sakip_rastaff', 'sinori_sakip_renaksieval']) && $idTriwulan) {
                     $query->where('id_triwulan', $idTriwulan);
                 }
-                
+
+                $dokumen = $query->orderByDesc('id_perubahan')->first();
+
                 if ($dokumen) {
                     $namaFile = $source['prefix'] . '_' . $tahunFormat . '_' . $dokumen->id_perubahan;
 
                     if ($periodeTambahan) {
-                        // Pastikan tetap ada spasi: "TW 1", "TW 2", dst
                         $namaFile .= '_' . strtoupper(str_replace('TW', 'TW', $periodeTambahan));
                     }
                     $namaFile .= '.pdf';
 
-                    // simpan (kalau sudah ada â†’ update tanggal, kalau belum â†’ insert baru)
-                    DB::table('bukti_dukung')->updateOrInsert(
-                        [
-                            'id_kriteria'       => $idKriteria,
-                            'id_satker'         => $idSatker,
-                            'id_komponen'       => $idKomponen,
-                            'id_sub_komponen'   => $idSubKomponen,
-                        ],
-                        [
-                            'link_bukti_dukung' => $namaFile,
-                            'tgl_pengisian' => now()->format('d/m/Y h:i A'),
-                        ]
+                    // Simpan tersinkronisasi ke bukti_dukung dan lke_satker_bukti
+                    LkeEvidenceHelper::syncEvidenceRecord(
+                        (string)$idSatker,
+                        (string)$idKriteria,
+                        $namaFile,
+                        $idKomponen,
+                        $idSubKomponen,
+                        $tahun
                     );
 
                     $results[] = $namaFile;
                 }
             }
         }
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'synced' => $results]);
     }
 
 
@@ -362,14 +467,27 @@ class EvaluasiController extends Controller
         $idSatker      = session('id_satker');
         $idKomponen    = $request->input('id_komponen');
         $idSubKomponen = $request->input('id_subkomponen');
+        $tahun         = session('tahun_terpilih', date('Y'));
 
-        $kriteria = DB::table('kriteria')->where('id', $idKriteria)->first();
-        if (!$kriteria) {
-            return response()->json(['success' => false, 'message' => 'Kriteria tidak ditemukan.']);
+        $matchingKriteria = DB::table('kriteria')
+            ->where('id', $idKriteria)
+            ->orWhere('kode', $idKriteria)
+            ->orWhere('id', 'like', $idKriteria . '.%')
+            ->get();
+
+        $formats = [];
+        foreach ($matchingKriteria as $mk) {
+            if ($mk->format_nama_file) {
+                foreach (explode(';', $mk->format_nama_file) as $f) {
+                    $f = trim($f);
+                    if ($f && !in_array($f, $formats)) {
+                        $formats[] = $f;
+                    }
+                }
+            }
         }
 
-        $formats = array_filter(array_map('trim', explode(';', $kriteria->format_nama_file ?? '')));
-        $manualFormats = collect($formats)->filter(fn($f) => stripos($f, '(perubahan terakhir)') === false);
+        $manualFormats = collect($formats)->filter(fn($f) => stripos($f, '(perubahan terakhir)') === false)->values();
 
         $tujuanPath = public_path("uploads/repository/{$idSatker}");
         if (!file_exists($tujuanPath)) {
@@ -377,28 +495,27 @@ class EvaluasiController extends Controller
         }
 
         $uploadedFiles = [];
-        foreach ($request->file('files') as $index => $file) {
-            $manualFormat = $manualFormats[$index] ?? 'Dokumen';
-            $namaFile = str_replace(' ', '_', $manualFormat) . '.pdf';
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $index => $file) {
+                $manualFormat = $manualFormats[$index] ?? ('dokumen_' . ($index + 1));
+                $namaFile = str_replace(' ', '_', $manualFormat) . '.pdf';
 
-            $file->move($tujuanPath, $namaFile);
+                $file->move($tujuanPath, $namaFile);
 
-            DB::table('bukti_dukung')->updateOrInsert(
-                [
-                    'id_kriteria'     => $idKriteria,
-                    'id_satker'       => $idSatker,
-                    'id_komponen'     => $idKomponen,
-                    'id_sub_komponen' => $idSubKomponen,
-                    'link_bukti_dukung' => $namaFile,
-                ],
-                [
-                    'tgl_pengisian' => now()->format('d/m/Y h:i A'),
-                ]
-            );
+                // Simpan tersinkronisasi ke bukti_dukung dan lke_satker_bukti
+                LkeEvidenceHelper::syncEvidenceRecord(
+                    (string)$idSatker,
+                    (string)$idKriteria,
+                    $namaFile,
+                    $idKomponen,
+                    $idSubKomponen,
+                    $tahun
+                );
 
-            $uploadedFiles[] = asset("uploads/repository/{$idSatker}/{$namaFile}");
+                $uploadedFiles[] = asset("uploads/repository/{$idSatker}/{$namaFile}");
+            }
         }
 
-        return back()->with('success', 'Upload berhasil.');
+        return back()->with('success', 'Upload bukti dukung berhasil dan disinkronkan.');
     }
 }

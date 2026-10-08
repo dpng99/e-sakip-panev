@@ -241,6 +241,13 @@ body {
     transform: scale(0.98);
 }
 
+.btn-xs {
+    padding: 0.2rem 0.55rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 6px !important;
+    line-height: 1.2 !important;
+}
+
 /* Tombol Emas Kejaksaan (Utama) */
 .btn-yellow,
 .btn-gold {
@@ -815,3 +822,18 @@ body {
 .max-w-lg { max-width: 620px !important; }
 .z-toast { z-index: 1090 !important; }
 .cursor-pointer { cursor: pointer !important; }
+
+/* Accordion Kejaksaan RI styling */
+#accordionLkeEvaluasi .accordion-button:not(.collapsed),
+#accordionBuktiLke .accordion-button:not(.collapsed) {
+    background-color: #f0fdf4 !important;
+    color: #0f5132 !important;
+    box-shadow: inset 0 -1px 0 rgba(15, 81, 50, 0.15) !important;
+}
+
+#accordionLkeEvaluasi .accordion-button:focus,
+#accordionBuktiLke .accordion-button:focus {
+    border-color: var(--kj-emerald) !important;
+    box-shadow: 0 0 0 0.25rem rgba(15, 81, 50, 0.15) !important;
+}
+

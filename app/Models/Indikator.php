@@ -12,6 +12,9 @@ class Indikator extends Model
     // Nama tabel
     protected $table = 'sinori_sakip_indikator';
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     // Kolom yang dapat diisi
     protected $fillable = [
         'id_saspro',
