@@ -382,6 +382,18 @@
                          class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}"
                          data-bs-parent="#accordionLkeEvaluasi">
                         <div class="accordion-body p-3 bg-white">
+                            <!-- Komponen Action Bar: Toggle All Subkomponen -->
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                                <div class="text-xs text-muted">
+                                    <i class="bi bi-diagram-3 me-1 text-primary"></i> Subkomponen dan Kriteria Evaluasi
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill btn-toggle-sub-all" data-target-komp="{{ $komp->id }}">
+                                        <i class="bi bi-arrows-collapse me-1"></i> <span class="btn-text">Tutup Semua Subkomponen</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             @foreach($komp->subkomponen as $sub)
                                 @php
                                     $subScoreData = $scores['subkomponen'][$sub->kode] ?? [
@@ -439,28 +451,38 @@
                                     $currentHasFile = $isModeEvaluasi ? !empty($koefEvalLink) : !empty($koefPmLink);
                                 @endphp
 
-                                <!-- Subkomponen Header Box -->
-                                <div class="lke-subkomp-box mb-2 d-flex flex-wrap justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center flex-wrap gap-2">
-                                        <span class="badge bg-dark font-monospace text-xs">{{ $sub->kode }}</span>
-                                        <strong class="text-dark text-sm">{{ $sub->nama }}</strong>
+                                <!-- Card Wrapper Subkomponen -->
+                                <div class="card lke-subkomp-card mb-4 border rounded-3 overflow-hidden shadow-sm" id="subkompCard-{{ $subDashKode }}">
+                                    <!-- Subkomponen Header (Clickable & Collapsible) -->
+                                    <div class="card-header lke-subkomp-header py-2 px-3 d-flex flex-wrap justify-content-between align-items-center cursor-pointer user-select-none"
+                                         data-bs-toggle="collapse"
+                                         data-bs-target="#collapseSubkomp-{{ $subDashKode }}"
+                                         aria-expanded="true">
+                                        <div class="d-flex align-items-center flex-wrap gap-2">
+                                            <i class="bi bi-chevron-down subkomp-chevron text-dark transition-transform"></i>
+                                            <span class="badge bg-dark font-monospace text-xs">{{ $sub->kode }}</span>
+                                            <strong class="text-dark text-sm">{{ $sub->nama }}</strong>
+                                        </div>
+                                        <div class="mt-2 mt-md-0 d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="badge bg-white text-dark border text-xs" title="Bobot Subkomponen">
+                                                Bobot: <strong>{{ number_format($subScoreData['bobot'] ?? $sub->bobot, 1) }}</strong>
+                                            </span>
+                                            <span class="badge {{ $activeKoef == 100 ? 'bg-success' : ($activeKoef == 90 ? 'bg-info text-dark' : 'bg-secondary') }} text-xs" id="subKoefBadge-{{ $subDashKode }}">
+                                                Koef: <strong id="subKoefVal-{{ $subDashKode }}">{{ $activeKoef }}%</strong> ({{ $currentGradasi }})
+                                            </span>
+                                            <span class="badge bg-secondary-subtle text-secondary text-xs" id="subKriteriaBadge-{{ $subDashKode }}">
+                                                {{ $subDisplayEvaluated }} / {{ $subScoreData['total_cnt'] }} Kriteria
+                                            </span>
+                                            <span class="badge bg-success px-3 py-2 text-xs rounded-pill shadow-xs">
+                                                {{ $isModeEvaluasi ? 'Skor Hasil Evaluasi: ' : 'Skor PM: ' }}
+                                                <span id="subScore-{{ $subDashKode }}">{{ number_format($subDisplayScore, 2) }}</span>
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="mt-2 mt-md-0 d-flex align-items-center gap-2 flex-wrap">
-                                        <span class="badge bg-light text-dark border text-xs" title="Bobot Subkomponen">
-                                            Bobot: <strong>{{ number_format($subScoreData['bobot'] ?? $sub->bobot, 1) }}</strong>
-                                        </span>
-                                        <span class="badge {{ $activeKoef == 100 ? 'bg-success' : ($activeKoef == 90 ? 'bg-info text-dark' : 'bg-secondary') }} text-xs" id="subKoefBadge-{{ $subDashKode }}">
-                                            Koef: <strong id="subKoefVal-{{ $subDashKode }}">{{ $activeKoef }}%</strong> ({{ $currentGradasi }})
-                                        </span>
-                                        <span class="badge bg-secondary-subtle text-secondary text-xs" id="subKriteriaBadge-{{ $subDashKode }}">
-                                            {{ $subDisplayEvaluated }} / {{ $subScoreData['total_cnt'] }} Kriteria
-                                        </span>
-                                        <span class="badge bg-success px-3 py-2 text-xs rounded-pill">
-                                            {{ $isModeEvaluasi ? 'Skor Hasil Evaluasi: ' : 'Skor PM: ' }}
-                                            <span id="subScore-{{ $subDashKode }}">{{ number_format($subDisplayScore, 2) }}</span>
-                                        </span>
-                                    </div>
-                                </div>
+
+                                    <!-- Collapsible Body Subkomponen (Menampung Gradasi & Kriteria di bawahnya) -->
+                                    <div class="collapse show lke-subkomp-collapse" id="collapseSubkomp-{{ $subDashKode }}">
+                                        <div class="card-body p-3 bg-white">
 
                                 <!-- SECTION GRADASI NILAI SUBKOMPONEN (Default 80% BB -> Pilihan A 90% atau AA 100%) -->
                                 <div class="card border border-primary-subtle shadow-sm rounded-3 mb-3 bg-white" id="cardKoefisien-{{ $subDashKode }}">
@@ -716,31 +738,76 @@
                                     </div>
                                 </div>
 
-                                <!-- Kriteria Cards under this Subkomponen -->
-                                <div class="mb-4">
-                                    @foreach($sub->kriteria as $cr)
-                                        @php
-                                            $eval = $existingPenilaian->get($cr->kode);
-                                            $evidences = $satkerBukti->get($cr->kode, collect());
-                                            $requiredBuktiIds = $cr->bukti_dukung_ids;
-                                            $safeKode = str_replace('.', '_', $cr->kode);
-                                            $dashKode = str_replace('.', '-', $cr->kode);
+                                            <!-- Header Section Kriteria di bawah Subkomponen -->
+                                            <div class="d-flex justify-content-between align-items-center mb-2 px-1 flex-wrap gap-2">
+                                                <div class="text-xs fw-bold text-muted text-uppercase tracking-wide">
+                                                    <i class="bi bi-list-check me-1 text-primary"></i> Daftar Kriteria Penilaian ({{ count($sub->kriteria) }})
+                                                </div>
+                                                <div>
+                                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill btn-toggle-crit-all" data-target-sub="{{ $subDashKode }}">
+                                                        <i class="bi bi-arrows-collapse me-1"></i> <span class="btn-text">Tutup Semua Kriteria</span>
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                                            // Status Hasil Evaluasi (JAMWAS / Kejati)
-                                            $hasEvaluasi = $eval && !is_null($eval->parameter_id);
-                                            $evalNilai = $hasEvaluasi ? $eval->nilai : null;
-                                            $evalSkor = $hasEvaluasi ? (float)$eval->skor : 0.00;
-                                            $evalCatatan = $hasEvaluasi ? $eval->catatan : '';
+                                            <!-- Daftar Kriteria Penilaian di Bawah Subkomponen -->
+                                            <div class="lke-criteria-list" id="critList-{{ $subDashKode }}">
+                                                @foreach($sub->kriteria as $cr)
+                                                    @php
+                                                        $eval = $existingPenilaian->get($cr->kode);
+                                                        $evidences = $satkerBukti->get($cr->kode, collect());
+                                                        $requiredBuktiIds = $cr->bukti_dukung_ids;
+                                                        $safeKode = str_replace('.', '_', $cr->kode);
+                                                        $dashKode = str_replace('.', '-', $cr->kode);
 
-                                            // Status Penilaian Mandiri (PM Satker)
-                                            $hasPm = $eval && !is_null($eval->pm_parameter_id);
-                                            $pmNilai = $hasPm ? $eval->pm_nilai : null;
-                                            $pmSkor = $hasPm ? (float)$eval->pm_skor : 0.00;
-                                            $pmCatatan = $hasPm ? $eval->pm_catatan : '';
-                                        @endphp
-                                        <div class="card lke-kriteria-card mb-3" id="cardKriteria-{{ $dashKode }}">
-                                            <div class="card-body p-3">
-                                                <div class="row g-3">
+                                                        // Status Hasil Evaluasi (JAMWAS / Kejati)
+                                                        $hasEvaluasi = $eval && !is_null($eval->parameter_id);
+                                                        $evalNilai = $hasEvaluasi ? $eval->nilai : null;
+                                                        $evalSkor = $hasEvaluasi ? (float)$eval->skor : 0.00;
+                                                        $evalCatatan = $hasEvaluasi ? $eval->catatan : '';
+
+                                                        // Status Penilaian Mandiri (PM Satker)
+                                                        $hasPm = $eval && !is_null($eval->pm_parameter_id);
+                                                        $pmNilai = $hasPm ? $eval->pm_nilai : null;
+                                                        $pmSkor = $hasPm ? (float)$eval->pm_skor : 0.00;
+                                                        $pmCatatan = $hasPm ? $eval->pm_catatan : '';
+                                                    @endphp
+                                                    <div class="card lke-kriteria-card mb-3 border rounded-3 overflow-hidden shadow-xs" id="cardKriteria-{{ $dashKode }}">
+                                                        <!-- Kriteria Card Header (Clickable & Collapsible) -->
+                                                        <div class="card-header lke-crit-header bg-white py-2 px-3 d-flex flex-wrap justify-content-between align-items-center cursor-pointer user-select-none"
+                                                             data-bs-toggle="collapse" 
+                                                             data-bs-target="#collapseCrit-{{ $dashKode }}" 
+                                                             aria-expanded="true">
+                                                            <div class="d-flex align-items-center gap-2 flex-grow-1 me-2">
+                                                                <i class="bi bi-chevron-down crit-chevron text-muted transition-transform me-1"></i>
+                                                                <span class="badge bg-secondary-subtle text-dark border font-monospace text-xs">{{ $cr->kode }}</span>
+                                                                <span class="fw-semibold text-dark text-sm">{{ $cr->nama }}</span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center gap-2 mt-1 mt-md-0">
+                                                                @if($isModeEvaluasi)
+                                                                    <span class="badge {{ ($hasEvaluasi && $evalNilai === 'Terpenuhi') ? 'bg-success-subtle text-success' : (($hasEvaluasi && $evalNilai === 'Tidak Terpenuhi') ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary') }} current-score-badge text-xs" id="badgeScore-{{ $dashKode }}">
+                                                                        @if($hasEvaluasi)
+                                                                            Hasil Evaluasi: {{ $evalNilai }} (Skor: {{ number_format($evalSkor, 2) }})
+                                                                        @else
+                                                                            Belum Dievaluasi
+                                                                        @endif
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge {{ ($hasPm && $pmNilai === 'Terpenuhi') ? 'bg-success-subtle text-success' : (($hasPm && $pmNilai === 'Tidak Terpenuhi') ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary') }} current-score-badge text-xs" id="badgeScore-{{ $dashKode }}">
+                                                                        @if($hasPm)
+                                                                            Nilai PM: {{ $pmNilai }} (Skor: {{ number_format($pmSkor, 2) }})
+                                                                        @else
+                                                                            Belum Dinilai Mandiri
+                                                                        @endif
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Kriteria Card Collapsible Body -->
+                                                        <div class="collapse show lke-crit-collapse" id="collapseCrit-{{ $dashKode }}">
+                                                            <div class="card-body p-3 bg-white border-top">
+                                                                <div class="row g-3">
                                                     <!-- Kriteria Description & Evidence Column -->
                                                     <div class="col-lg-6">
                                                         <div class="d-flex align-items-start mb-2">
@@ -866,12 +933,8 @@
                                                                 <label class="text-xs fw-bold text-dark mb-0">
                                                                     <i class="bi bi-shield-check text-success me-1"></i>Form Evaluasi ({{ $evaluatorType === 'jamwas' ? 'JAMWAS' : ($evaluatorType === 'kejati' ? 'Kejaksaan Tinggi' : 'Evaluator') }}):
                                                                 </label>
-                                                                <span class="badge {{ ($hasEvaluasi && $evalNilai === 'Terpenuhi') ? 'bg-success-subtle text-success' : (($hasEvaluasi && $evalNilai === 'Tidak Terpenuhi') ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary') }} current-score-badge text-xs" id="badgeScore-{{ $dashKode }}">
-                                                                    @if($hasEvaluasi)
-                                                                        Hasil Evaluasi: {{ $evalNilai }} (Skor: {{ number_format($evalSkor, 2) }})
-                                                                    @else
-                                                                        Belum Dievaluasi
-                                                                    @endif
+                                                                <span class="text-xs text-muted">
+                                                                    Pilih opsi penilaian di bawah
                                                                 </span>
                                                             </div>
 
@@ -941,12 +1004,8 @@
                                                                 <label class="text-xs fw-bold text-dark mb-0">
                                                                     <i class="bi bi-pencil-square text-warning me-1"></i>Form Penilaian Mandiri (PM) Satker:
                                                                 </label>
-                                                                <span class="badge {{ ($hasPm && $pmNilai === 'Terpenuhi') ? 'bg-success-subtle text-success' : (($hasPm && $pmNilai === 'Tidak Terpenuhi') ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary') }} current-score-badge text-xs" id="badgeScore-{{ $dashKode }}">
-                                                                    @if($hasPm)
-                                                                        Nilai PM: {{ $pmNilai }} (Skor: {{ number_format($pmSkor, 2) }})
-                                                                    @else
-                                                                        Belum Dinilai Mandiri
-                                                                    @endif
+                                                                <span class="text-xs text-muted">
+                                                                    Pilih opsi penilaian di bawah
                                                                 </span>
                                                             </div>
 
@@ -1015,9 +1074,13 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
                         </div>
                     </div>
                 </div>
@@ -1566,6 +1629,99 @@ document.addEventListener('DOMContentLoaded', function () {
                 showToast('Terjadi kesalahan jaringan saat menyimpan nilai.', false);
             });
         });
+    });
+
+    // ============================================================
+    // KONTROL EXPAND & COLLAPSE HIERARKI SUBKOMPONEN DAN KRITERIA
+    // ============================================================
+
+    // Toggle Semua Subkomponen di dalam Komponen
+    document.querySelectorAll('.btn-toggle-sub-all').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const kompId = this.dataset.targetKomp;
+            const kompCollapse = document.getElementById('collapseKomp-' + kompId);
+            if (!kompCollapse) return;
+
+            const subCollapses = kompCollapse.querySelectorAll('.lke-subkomp-collapse');
+            const anyOpen = Array.from(subCollapses).some(c => c.classList.contains('show'));
+
+            subCollapses.forEach(c => {
+                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(c, { toggle: false });
+                if (anyOpen) {
+                    bsCollapse.hide();
+                } else {
+                    bsCollapse.show();
+                }
+            });
+
+            const icon = this.querySelector('i');
+            const span = this.querySelector('.btn-text');
+            if (anyOpen) {
+                if (icon) icon.className = 'bi bi-arrows-expand me-1';
+                if (span) span.textContent = 'Buka Semua Subkomponen';
+            } else {
+                if (icon) icon.className = 'bi bi-arrows-collapse me-1';
+                if (span) span.textContent = 'Tutup Semua Subkomponen';
+            }
+        });
+    });
+
+    // Toggle Semua Kriteria di dalam Subkomponen
+    document.querySelectorAll('.btn-toggle-crit-all').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const subDash = this.dataset.targetSub;
+            const list = document.getElementById('critList-' + subDash);
+            if (!list) return;
+
+            const critCollapses = list.querySelectorAll('.lke-crit-collapse');
+            const anyOpen = Array.from(critCollapses).some(c => c.classList.contains('show'));
+
+            critCollapses.forEach(c => {
+                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(c, { toggle: false });
+                if (anyOpen) {
+                    bsCollapse.hide();
+                } else {
+                    bsCollapse.show();
+                }
+            });
+
+            const icon = this.querySelector('i');
+            const span = this.querySelector('.btn-text');
+            if (anyOpen) {
+                if (icon) icon.className = 'bi bi-arrows-expand me-1';
+                if (span) span.textContent = 'Buka Semua Kriteria';
+            } else {
+                if (icon) icon.className = 'bi bi-arrows-collapse me-1';
+                if (span) span.textContent = 'Tutup Semua Kriteria';
+            }
+        });
+    });
+
+    // Sinkronisasi rotasi icon chevron & class collapsed pada header
+    document.addEventListener('show.bs.collapse', function (e) {
+        const target = e.target;
+        if (target.classList.contains('lke-subkomp-collapse')) {
+            const header = target.closest('.lke-subkomp-card')?.querySelector('.lke-subkomp-header');
+            if (header) header.classList.remove('collapsed');
+        } else if (target.classList.contains('lke-crit-collapse')) {
+            const header = target.closest('.lke-kriteria-card')?.querySelector('.lke-crit-header');
+            if (header) header.classList.remove('collapsed');
+        }
+    });
+
+    document.addEventListener('hide.bs.collapse', function (e) {
+        const target = e.target;
+        if (target.classList.contains('lke-subkomp-collapse')) {
+            const header = target.closest('.lke-subkomp-card')?.querySelector('.lke-subkomp-header');
+            if (header) header.classList.add('collapsed');
+        } else if (target.classList.contains('lke-crit-collapse')) {
+            const header = target.closest('.lke-kriteria-card')?.querySelector('.lke-crit-header');
+            if (header) header.classList.add('collapsed');
+        }
     });
 });
 </script>
