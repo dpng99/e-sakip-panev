@@ -164,6 +164,7 @@ private function penamaan(){
         }
         // Ambil tahun yang dipilih dari session
         $tahun = session('tahun_terpilih');
+        $satker = session('id_satker') ?? '006050';
     $data1 = DataLke1::where('kode', $kode)->get();
     // Ambil semua kode_bukti, pecah jadi array angka
     $kodeBuktiIds = [];
@@ -184,120 +185,120 @@ private function penamaan(){
         $status = 'Tidak Ada';
 
         if ($id == 1) {
-            $status = Renstra::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Renstra::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         } elseif ($id == 2) {
-            $status = Renja::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Renja::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         } elseif ($id == 3) {
-            $status = Renaksi::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Renaksi::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 4) {
             // Cek di tabel renaksi
-            $status = Rkakl::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Rkakl::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 5) {
             // Cek di tabel renaksi
-            $status = Dipa::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Dipa::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         } elseif($id == 6) {
             // Cek di tabel renaksi
-            $status = Pk::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Pk::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 7) {
             // Cek di tabel renaksi
-            $status = Pk::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Pk::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 8) {
             // Cek di tabel renaksi
-            $status = Iku::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Iku::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 9) {
             // Cek di tabel renaksi
-            $status = Iku::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Iku::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 10) {
             // Cek di tabel renaksi
-            $status = Lkjip::where('id_satker', '006050')->where('triwulan', 'TW 1')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Lkjip::where('id_satker', $satker)->where('triwulan', 'TW 1')->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 11) {
             // Cek di tabel renaksi
-            $status = Lkjip::where('id_satker', '006050')->where('triwulan', 'TW 2')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Lkjip::where('id_satker', $satker)->where('triwulan', 'TW 2')->exists() ? 'Ada' : 'Tidak Ada';
         }elseif ($id == 12) {
             // Cek di tabel renaksi
-            $status = Lkjip::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = Lkjip::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
          }elseif ($id == 13) {
             // Cek di tabel renaksi
-            $status = DB::table('sinori_sakip_rastaff')->where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = DB::table('sinori_sakip_rastaff')->where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
          }elseif ($id == 14) {
             // Cek di tabel renaksi
-            $status = DB::table('sinori_sakip_rastaff')->where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = DB::table('sinori_sakip_rastaff')->where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
          }elseif ($id == 15) {
             // Cek di tabel renaksi
-            $status = LheAkip::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = LheAkip::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
          }elseif ($id == 16) {
             // Cek di tabel renaksi
-            $status = LheAkip::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status = LheAkip::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
          }elseif ($id == 17) {
             // Cek di tabel renaksi
-            $status = TlLheAkip::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';   
+            $status = TlLheAkip::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';   
             }elseif ($id == 18) {
             // Cek di tabel renaksi
-            $status = MonevRenaksi::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';   
+            $status = MonevRenaksi::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';   
             }elseif ($id == 19) {
             // Cek di tabel renaksi
-            $status = MonevRenaksi::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';   
+            $status = MonevRenaksi::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';   
             }elseif ($id == 20) {
             // Cek di tabel renaksi
-            $status= PokinRanwal::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status= PokinRanwal::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 21) {
             // Cek di tabel renaksi
-            $status=Renstra::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status=Renstra::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 22) {
             // cari tahun 2023
-            $status=Lkjip::where('id_satker', '006050')->where('tahun', 2023)->exists() ? 'Ada' : 'Tidak Ada';
+            $status=Lkjip::where('id_satker', $satker)->where('tahun', 2023)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 23) {
             // cari tahun 2023
-            $status=sample_skp::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status=sample_skp::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 24) {
-            $status=sk_pm::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+            $status=sk_pm::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 25) {
-                $status=sk_pk::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=sk_pk::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 26) {
-                $status=absen_pm::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=absen_pm::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 27) {
                 //harusnya notulensi bimtek
-                $status=notulensi_pm::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=notulensi_pm::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 28) {
-                $status=nodis_p_sakip::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=nodis_p_sakip::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 29) {
-                $status=nodis_eval_sakip::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=nodis_eval_sakip::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 30) {
-                $status=memo_datakinerja::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=memo_datakinerja::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 31) {
-                $status=nodis_datakinerja::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=nodis_datakinerja::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 32) {
-                $status=reward_punish::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=reward_punish::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 33) {
-                $status=sampel_rekom::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=sampel_rekom::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 34) {
-                $status=ss_perencanaan::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=ss_perencanaan::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 35) {
-                $status=ss_laporanweb::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=ss_laporanweb::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 36) {
-                $status=ss_laporanapp::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=ss_laporanapp::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 37) {
                 //tw1
-                $status=tar_lkjip::where('id_satker', '006050')->where('TW', 1)->exists() ? 'Ada' : 'Tidak Ada';
+                $status=tar_lkjip::where('id_satker', $satker)->where('TW', 1)->exists() ? 'Ada' : 'Tidak Ada';
 
             }elseif ($id == 38) {
                 //tw2
-                $status=tar_lkjip::where('id_satker', '006050')->where('TW', 2)->exists() ? 'Ada' : 'Tidak Ada';
+                $status=tar_lkjip::where('id_satker', $satker)->where('TW', 2)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 39) {
                 //tw1
-                $status=memo_lkjip::where('id_satker', '006050')->where('TW', 1)->exists() ? 'Ada' : 'Tidak Ada';
+                $status=memo_lkjip::where('id_satker', $satker)->where('TW', 1)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 40) {
                 //tw2
-                $status=memo_lkjip::where('id_satker', '006050')->where('TW', 2)->exists() ? 'Ada' : 'Tidak Ada';
+                $status=memo_lkjip::where('id_satker', $satker)->where('TW', 2)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 41) {
                 //tw1
-                $status=tar_pm::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=tar_pm::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 42) {
-                $status=ba_praeval::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=ba_praeval::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif ($id == 43) {
-                $status=ba_pleno::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=ba_pleno::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }elseif( $id == 44) {
-                $status=lhe_2023::where('id_satker', '006050')->exists() ? 'Ada' : 'Tidak Ada';
+                $status=lhe_2023::where('id_satker', $satker)->exists() ? 'Ada' : 'Tidak Ada';
             }
         $bukti_dukung[] = [
             'nama' => $nama,
@@ -327,7 +328,7 @@ public function upload(Request $request)
     $id_bukti = $request->id_bukti;
     $file = $request->file('file');
     $tahun = session('tahun_terpilih') ?? date('Y');
-    $id_satker = '006050';
+    $id_satker = session('id_satker') ?? '006050';
     $namafile = ($this->penamaan()[$id_bukti] ?? 'dokumen')."_{$id_satker}_{$tahun}." ."pdf";
     $path = $file->move(public_path('uploads/repository/' . $id_bukti), $namafile);
     $mapping = $this->getMapping();

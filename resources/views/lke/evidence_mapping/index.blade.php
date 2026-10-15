@@ -142,29 +142,41 @@
                                     {{ $item->subkomponen->nama ?? '' }}
                                 </div>
                             </td>
-                            <td id="evidence-container-{{ str_replace('.', '-', $item->kode) }}">
-                                @if(!empty($evidenceIds))
-                                    <div class="d-flex flex-wrap gap-1 align-items-center">
-                                        @foreach($evidenceIds as $eid)
-                                            @php
-                                                $doc = $masterBukti->firstWhere('id', $eid);
-                                            @endphp
-                                            <span class="badge bg-white text-dark border shadow-xs p-2 d-inline-flex align-items-center" style="font-size: 0.82rem;">
-                                                <span class="badge bg-primary me-1">#{{ $eid }}</span>
-                                                <span class="text-truncate" style="max-width: 260px;" title="{{ $doc->dokumen ?? 'Dokumen #'.$eid }}">
-                                                    {{ $doc->dokumen ?? 'Dokumen #'.$eid }}
+                            <td>
+                                <div id="evidence-container-{{ str_replace('.', '-', $item->kode) }}">
+                                    @if(!empty($evidenceIds))
+                                        <div class="d-flex flex-wrap gap-1 align-items-center">
+                                            @foreach($evidenceIds as $eid)
+                                                @php
+                                                    $doc = $masterBukti->firstWhere('id', $eid);
+                                                @endphp
+                                                <span class="badge bg-white text-dark border shadow-xs p-2 d-inline-flex align-items-center" style="font-size: 0.82rem;">
+                                                    <span class="badge bg-primary me-1">#{{ $eid }}</span>
+                                                    <span class="text-truncate" style="max-width: 260px;" title="{{ $doc->dokumen ?? 'Dokumen #'.$eid }}">
+                                                        {{ $doc->dokumen ?? 'Dokumen #'.$eid }}
+                                                    </span>
+                                                    @if($doc && $doc->tabel_sumber)
+                                                        <span class="badge bg-info-subtle text-info ms-1" style="font-size: 0.7rem;">{{ $doc->tabel_sumber }}</span>
+                                                    @endif
                                                 </span>
-                                                @if($doc && $doc->tabel_sumber)
-                                                    <span class="badge bg-info-subtle text-info ms-1" style="font-size: 0.7rem;">{{ $doc->tabel_sumber }}</span>
-                                                @endif
-                                            </span>
-                                        @endforeach
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                                            <i class="bi bi-exclamation-circle me-1"></i> Belum ada bukti dukung
+                                        </span>
+                                    @endif
+                                </div>
+                                <div id="langkah-container-{{ str_replace('.', '-', $item->kode) }}" class="mt-2 pt-2 border-top">
+                                    <div class="text-xs fw-semibold text-muted mb-1 d-flex align-items-center">
+                                        <i class="bi bi-list-task text-primary me-1"></i> Langkah Kerja:
                                     </div>
-                                @else
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
-                                        <i class="bi bi-exclamation-circle me-1"></i> Belum ada bukti dukung
-                                    </span>
-                                @endif
+                                    @if(!empty($item->langkah_kerja))
+                                        <div class="text-xs text-dark bg-light p-2 rounded border" style="white-space: pre-line;">{!! nl2br(e($item->langkah_kerja)) !!}</div>
+                                    @else
+                                        <span class="text-muted text-xs fst-italic">Belum ada langkah kerja.</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="text-center">
                                 <button type="button" 
@@ -239,7 +251,15 @@
                             <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                             Memuat daftar dokumen bukti dukung...
                         </div>
-                    </div>
+                </div>
+
+                <!-- Langkah Kerja / Petunjuk Kerja Section -->
+                <div class="mt-4 pt-3 border-top">
+                    <label class="form-label fw-bold text-dark d-flex justify-content-between align-items-center" for="modalLangkahKerja">
+                        <span><i class="bi bi-list-task text-primary me-1"></i> Langkah Kerja / Panduan Pengerjaan</span>
+                        <small class="text-muted">Panduan teknis langkah pemenuhan untuk kriteria ini</small>
+                    </label>
+                    <textarea class="form-control" id="modalLangkahKerja" rows="4" placeholder="Tuliskan petunjuk atau langkah-langkah kerja untuk kriteria ini..."></textarea>
                 </div>
             </div>
             <div class="modal-footer bg-light border-0">
@@ -292,6 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.getElementById('modalKriteriaKode').textContent = currentKode;
             document.getElementById('modalKriteriaNama').textContent = kriteriaNama;
+            document.getElementById('modalLangkahKerja').value = '';
             document.getElementById('masterEvidenceList').innerHTML = `
                 <div class="text-center py-4 text-muted">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
@@ -308,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.success) {
                         selectedBuktiIds = new Set(data.selectedIds);
                         allMasterBukti = data.allBukti;
+                        document.getElementById('modalLangkahKerja').value = (data.kriteria && data.kriteria.langkah_kerja) ? data.kriteria.langkah_kerja : '';
                         renderSelectedChips();
                         renderMasterList();
                     } else {
@@ -429,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menyimpan...';
 
         const buktiArray = Array.from(selectedBuktiIds);
+        const langkahKerjaVal = document.getElementById('modalLangkahKerja').value.trim();
 
         fetch(`/lke/evidence-mapping/update/${encodeURIComponent(currentKode)}`, {
             method: 'POST',
@@ -438,7 +461,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                bukti_ids: buktiArray
+                bukti_ids: buktiArray,
+                langkah_kerja: langkahKerjaVal
             })
         })
         .then(res => res.json())
@@ -474,6 +498,33 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
                                 <i class="bi bi-exclamation-circle me-1"></i> Belum ada bukti dukung
                             </span>
+                        `;
+                    }
+                }
+
+                // Update langkah kerja container in table
+                const langkahContainer = document.getElementById(`langkah-container-${rowSafeKode}`);
+                if (langkahContainer) {
+                    if (data.langkah_kerja && data.langkah_kerja.trim() !== '') {
+                        const escapedText = data.langkah_kerja
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;')
+                            .replace(/\n/g, '<br>');
+                        langkahContainer.innerHTML = `
+                            <div class="text-xs fw-semibold text-muted mb-1 d-flex align-items-center">
+                                <i class="bi bi-list-task text-primary me-1"></i> Langkah Kerja:
+                            </div>
+                            <div class="text-xs text-dark bg-light p-2 rounded border" style="white-space: pre-line;">${escapedText}</div>
+                        `;
+                    } else {
+                        langkahContainer.innerHTML = `
+                            <div class="text-xs fw-semibold text-muted mb-1 d-flex align-items-center">
+                                <i class="bi bi-list-task text-primary me-1"></i> Langkah Kerja:
+                            </div>
+                            <span class="text-muted text-xs fst-italic">Belum ada langkah kerja.</span>
                         `;
                     }
                 }

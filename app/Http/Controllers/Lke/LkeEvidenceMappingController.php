@@ -108,7 +108,13 @@ class LkeEvidenceMappingController extends Controller
     {
         $this->checkAdmin();
 
-        $kriteria = LkeKriteria::where('kode', $kode)->firstOrFail();
+        $tahun = session('tahun_terpilih') ?? date('Y');
+        $kriteria = LkeKriteria::where('kode', $kode)
+            ->where(function ($q) use ($tahun) {
+                $q->where('tahun', $tahun)->orWhere('tahun', 2025);
+            })
+            ->orderBy('tahun', 'desc')
+            ->firstOrFail();
         $selectedIds = $kriteria->bukti_dukung_ids;
 
         // Current mapped items
@@ -137,11 +143,18 @@ class LkeEvidenceMappingController extends Controller
         $this->checkAdmin();
 
         $request->validate([
-            'bukti_ids'   => 'nullable|array',
-            'bukti_ids.*' => 'integer|exists:lke_buktidukung,id',
+            'bukti_ids'     => 'nullable|array',
+            'bukti_ids.*'   => 'integer|exists:lke_buktidukung,id',
+            'langkah_kerja' => 'nullable|string',
         ]);
 
-        $kriteria = LkeKriteria::where('kode', $kode)->firstOrFail();
+        $tahun = session('tahun_terpilih') ?? date('Y');
+        $kriteria = LkeKriteria::where('kode', $kode)
+            ->where(function ($q) use ($tahun) {
+                $q->where('tahun', $tahun)->orWhere('tahun', 2025);
+            })
+            ->orderBy('tahun', 'desc')
+            ->firstOrFail();
         $buktiIds = $request->input('bukti_ids', []);
 
         // Sort IDs numerically
@@ -165,17 +178,19 @@ class LkeEvidenceMappingController extends Controller
             if (!empty($dokumenBuktiText)) {
                 $kriteria->dokumen_bukti = $dokumenBuktiText;
             }
+            if ($request->has('langkah_kerja')) {
+                $kriteria->langkah_kerja = $request->input('langkah_kerja');
+            }
             $kriteria->save();
+            $nowYear = $kriteria->tahun ?? (session('tahun_terpilih') ?? 2025);
 
             // 2. Synchronize lke_gabungan
-            // Remove existing gabungan for this kriteria
-            LkeGabungan::where('kriteria_id', $kode)->delete();
+            // Remove existing gabungan for this kriteria in current year
+            LkeGabungan::where('kriteria_id', $kode)->where('tahun', $nowYear)->delete();
 
             // Determine komponen_id and sub_komponen_id
             $sub = LkeSubkomponen::where('kode', $kriteria->subkomponen_id)->first();
             $komponenId = $sub ? $sub->komponen_id : 1;
-
-            $nowYear = $kriteria->tahun ?? (session('tahun_terpilih') ?? 2025);
 
             $insertGabungan = [];
             foreach ($buktiIds as $bId) {
@@ -199,6 +214,7 @@ class LkeEvidenceMappingController extends Controller
                 'message'       => "Mapping Bukti Dukung untuk Kriteria {$kode} berhasil diperbarui!",
                 'kode_bukti'    => $kriteria->kode_bukti,
                 'dokumen_bukti' => $kriteria->dokumen_bukti,
+                'langkah_kerja' => $kriteria->langkah_kerja,
                 'mapped_items'  => $docs,
             ]);
         } catch (\Exception $e) {

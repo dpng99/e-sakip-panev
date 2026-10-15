@@ -171,7 +171,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/lke/evidence-mapping/detail/{kode}', [LkeEvidenceMappingController::class, 'getCriteriaDetail'])->name('lke.evidence_mapping.detail');
     Route::post('/lke/evidence-mapping/update/{kode}', [LkeEvidenceMappingController::class, 'updateMapping'])->name('lke.evidence_mapping.update');
     Route::get('/lke/master-bukti', [LkeMasterBuktiController::class, 'index'])->name('lke.master_bukti.index');
+    Route::post('/lke/master-bukti/store', [LkeMasterBuktiController::class, 'store'])->name('lke.master_bukti.store');
     Route::post('/lke/master-bukti/update/{id}', [LkeMasterBuktiController::class, 'update'])->name('lke.master_bukti.update');
+    Route::post('/lke/master-bukti/delete/{id}', [LkeMasterBuktiController::class, 'destroy'])->name('lke.master_bukti.destroy');
 
     // === Pengumuman ===
     Route::get('/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman');

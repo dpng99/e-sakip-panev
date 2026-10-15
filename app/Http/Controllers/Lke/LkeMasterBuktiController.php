@@ -58,22 +58,87 @@ class LkeMasterBuktiController extends Controller
         return view('lke.master_bukti.index', compact('masterBukti', 'tabelSumberList', 'tahunList'));
     }
 
+    public function store(Request $request)
+    {
+        $this->checkAdmin();
+
+        $request->validate([
+            'dokumen' => 'required|string|max:500',
+            'tabel_sumber' => 'nullable|string|max:100',
+            'format_nama_file' => 'nullable|string|max:255',
+            'keterangan' => 'nullable|string',
+            'tahun' => 'nullable|integer',
+        ]);
+
+        $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($request->input('dokumen'))));
+        $format = $request->input('format_nama_file');
+        if (empty($format)) {
+            $format = $slug . '_{tahun}.pdf';
+        }
+
+        $bukti = new LkeBuktidukung();
+        $bukti->dokumen = $request->input('dokumen');
+        $bukti->tabel_sumber = $request->input('tabel_sumber') ?: null;
+        $bukti->format_nama_file = $format;
+        $bukti->keterangan = $request->input('keterangan') ?: '-';
+        $bukti->ada_di_sistem = !empty($request->input('tabel_sumber')) ? 1 : 0;
+        $bukti->tahun = $request->input('tahun') ?: null;
+        $bukti->save();
+        \App\Helpers\LkeEvidenceHelper::clearCache();
+
+        return redirect()->route('lke.master_bukti.index')->with('success', 'Bukti Dukung Baru [ID #' . $bukti->id . '] berhasil ditambahkan!');
+    }
+
     public function update(Request $request, $id)
     {
         $this->checkAdmin();
 
         $request->validate([
             'dokumen' => 'required|string|max:500',
-            'tabel_sumber' => 'required|string|max:100',
-            'tahun' => 'required|integer',
+            'tabel_sumber' => 'nullable|string|max:100',
+            'format_nama_file' => 'nullable|string|max:255',
+            'keterangan' => 'nullable|string',
+            'tahun' => 'nullable|integer',
         ]);
 
         $bukti = LkeBuktidukung::findOrFail($id);
         $bukti->dokumen = $request->input('dokumen');
-        $bukti->tabel_sumber = $request->input('tabel_sumber');
-        $bukti->tahun = $request->input('tahun');
+        $bukti->tabel_sumber = $request->input('tabel_sumber') ?: null;
+        if ($request->has('format_nama_file')) {
+            $bukti->format_nama_file = $request->input('format_nama_file');
+        }
+        if ($request->has('keterangan')) {
+            $bukti->keterangan = $request->input('keterangan') ?: '-';
+        }
+        $bukti->ada_di_sistem = !empty($request->input('tabel_sumber')) ? 1 : 0;
+        $bukti->tahun = $request->input('tahun') ?: null;
         $bukti->save();
+        \App\Helpers\LkeEvidenceHelper::clearCache();
 
-        return redirect()->route('lke.master_bukti.index')->with('success', 'Master Bukti Dukung berhasil diperbarui!');
+        return redirect()->route('lke.master_bukti.index')->with('success', 'Master Bukti Dukung [ID #' . $id . '] berhasil diperbarui!');
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $this->checkAdmin();
+
+        $bukti = LkeBuktidukung::findOrFail($id);
+
+        // Check if used in lke_gabungan
+        $isUsedInGabungan = \App\Models\LkeGabungan::where('buktidukung_id', $id)->exists();
+        // Check if used in lke_satker_bukti
+        $isUsedInSatker = \App\Models\LkeSatkerBukti::where('buktidukung_id', $id)->exists();
+        // Check if used in lke_kriteria (comma-separated kode_bukti)
+        $isUsedInKriteria = \App\Models\LkeKriteria::whereRaw("FIND_IN_SET(?, REPLACE(kode_bukti, ' ', ''))", [$id])->exists();
+
+        if ($isUsedInGabungan || $isUsedInSatker || $isUsedInKriteria) {
+            return redirect()->route('lke.master_bukti.index')->withErrors([
+                'error' => "Bukti Dukung ID #{$id} tidak dapat dihapus karena sedang digunakan dalam pemetaan kriteria atau bukti satuan kerja."
+            ]);
+        }
+
+        $bukti->delete();
+        \App\Helpers\LkeEvidenceHelper::clearCache();
+        return redirect()->route('lke.master_bukti.index')->with('success', "Master Bukti Dukung ID #{$id} berhasil dihapus.");
     }
 }

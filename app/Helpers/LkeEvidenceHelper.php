@@ -29,6 +29,34 @@ class LkeEvidenceHelper
     }
 
     /**
+     * Cache for master bukti records.
+     */
+    protected static ?array $masterBuktiList = null;
+
+    /**
+     * Clear all static helper caches.
+     */
+    public static function clearCache(): void
+    {
+        self::$masterBuktiList = null;
+        self::$kriteriaMap = null;
+    }
+
+    /**
+     * Get all master bukti records keyed by ID.
+     */
+    public static function getMasterBuktiList(bool $refresh = false): array
+    {
+        if (self::$masterBuktiList === null || $refresh) {
+            self::$masterBuktiList = DB::table('lke_buktidukung')
+                ->get()
+                ->keyBy('id')
+                ->toArray();
+        }
+        return self::$masterBuktiList;
+    }
+
+    /**
      * Get criteria to candidate bukti IDs mapping.
      */
     public static function getKriteriaMap(): array
@@ -48,12 +76,20 @@ class LkeEvidenceHelper
 
     /**
      * Check if a filename matches a specific Master Bukti Dukung ID (1 to 44).
+     * Supports dynamic relative years:
+     * - T: Current evaluation year
+     * - T-1: Previous year
+     * - T-2: Two years ago
      */
-    public static function matchesBuktiId(?string $filename, int $bId): bool
+    public static function matchesBuktiId(?string $filename, int $bId, ?int $tahun = null): bool
     {
         if (empty($filename)) {
             return false;
         }
+
+        $tCurr = $tahun ?: (int)(session('tahun_terpilih') ?: date('Y'));
+        $tPrev = $tCurr - 1;
+        $tPrev2 = $tCurr - 2;
 
         $fn = strtolower(basename($filename));
 
@@ -73,15 +109,18 @@ class LkeEvidenceHelper
             case 5: // DIPA
                 return str_contains($fn, 'dipa');
 
-            case 6: // PK Satker 2025 / Current
-                return (str_contains($fn, 'pk_') || str_starts_with($fn, 'pk')) && !str_contains($fn, '2024');
+            case 6: // PK Satker Tahun Berjalan (T)
+                return (str_contains($fn, 'pk_') || str_starts_with($fn, 'pk'))
+                    && !str_contains($fn, (string)$tPrev)
+                    && !str_contains($fn, (string)$tPrev2);
 
-            case 7: // PK Satker 2024
-                return (str_contains($fn, 'pk_') || str_starts_with($fn, 'pk')) && str_contains($fn, '2024');
+            case 7: // PK Satker Tahun Sebelumnya (T-1)
+                return (str_contains($fn, 'pk_') || str_starts_with($fn, 'pk'))
+                    && (str_contains($fn, (string)$tPrev) || str_contains($fn, 't-1') || str_contains($fn, 't_1'));
 
             case 8: // IKU
             case 9: // IKU / Penetapan Target Kinerja
-                return str_contains($fn, 'iku');
+                return str_contains($fn, 'iku') || str_contains($fn, 'target_kinerja');
 
             case 10: // LKJiP TW 1
                 return str_contains($fn, 'lkjip') && (str_contains($fn, 'tw 1') || str_contains($fn, 'tw1') || str_contains($fn, 'tw_1') || str_ends_with($fn, '_1.pdf'));
@@ -89,8 +128,14 @@ class LkeEvidenceHelper
             case 11: // LKJiP TW 2
                 return str_contains($fn, 'lkjip') && (str_contains($fn, 'tw 2') || str_contains($fn, 'tw2') || str_contains($fn, 'tw_2') || str_ends_with($fn, '_2.pdf'));
 
-            case 12: // LKJiP TW 4 / 2024
-                return str_contains($fn, 'lkjip') && (str_contains($fn, '2024') || str_contains($fn, 'tw 4') || str_contains($fn, 'tw4') || str_contains($fn, 'tw_4'));
+            case 12: // LKJiP TW 4 / Tahunan T-1
+                return str_contains($fn, 'lkjip') && (
+                    str_contains($fn, (string)$tPrev) ||
+                    str_contains($fn, 'tw 4') ||
+                    str_contains($fn, 'tw4') ||
+                    str_contains($fn, 'tw_4') ||
+                    str_contains($fn, 'tahunan')
+                );
 
             case 13: // Rapat Staf EKA TW 1
                 return str_contains($fn, 'rastaff') && (str_contains($fn, 'tw 1') || str_contains($fn, 'tw1') || str_contains($fn, 'tw_1'));
@@ -98,14 +143,14 @@ class LkeEvidenceHelper
             case 14: // Rapat Staf EKA TW 2
                 return str_contains($fn, 'rastaff') && (str_contains($fn, 'tw 2') || str_contains($fn, 'tw2') || str_contains($fn, 'tw_2'));
 
-            case 15: // LHE AKIP 2024
-                return str_contains($fn, 'lhe') && str_contains($fn, '2024') && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
+            case 15: // LHE AKIP T-1
+                return str_contains($fn, 'lhe') && str_contains($fn, (string)$tPrev) && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
 
-            case 16: // LHE AKIP 2025
-                return str_contains($fn, 'lhe') && str_contains($fn, '2025') && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
+            case 16: // LHE AKIP Tahun Berjalan (jika ada)
+                return str_contains($fn, 'lhe') && str_contains($fn, (string)$tCurr) && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
 
-            case 17: // TL LHE AKIP 2024
-                return str_contains($fn, 'tl_lhe') || str_contains($fn, 'tllhe');
+            case 17: // TL LHE AKIP
+                return str_contains($fn, 'tl_lhe') || str_contains($fn, 'tllhe') || str_contains($fn, 'tindak_lanjut_lhe');
 
             case 18: // Monev Renaksi TW 1
                 return (str_contains($fn, 'monev') || str_contains($fn, 'renaksieval')) && (str_contains($fn, 'tw 1') || str_contains($fn, 'tw1') || str_contains($fn, 'tw_1'));
@@ -119,8 +164,8 @@ class LkeEvidenceHelper
             case 21: // Renstra Lembaga / Kejaksaan RI
                 return str_contains($fn, 'renstra_lembaga');
 
-            case 22: // LKJiP 2023
-                return str_contains($fn, 'lkjip') && str_contains($fn, '2023');
+            case 22: // LKJiP T-2 (2 tahun lalu)
+                return str_contains($fn, 'lkjip') && (str_contains($fn, (string)$tPrev2) || str_contains($fn, 't-2'));
 
             case 23: // Sampel SKP
                 return str_contains($fn, 'sampel_skp') || str_contains($fn, 'sample_skp') || str_contains($fn, 'skp');
@@ -137,10 +182,10 @@ class LkeEvidenceHelper
             case 27: // Notulensi Bimtek
                 return str_contains($fn, 'notulensi');
 
-            case 28: // Pedoman 4 / Nota Dinas Sosialisasi 2024
-                return str_contains($fn, 'nodis_penyelenggaraan') || str_contains($fn, 'nodis_p_akip') || str_contains($fn, 'surat_atau_nota_dinas');
+            case 28: // Pedoman 4 / Nota Dinas Sosialisasi AKIP
+                return str_contains($fn, 'nodis_penyelenggaraan') || str_contains($fn, 'nodis_p_akip') || str_contains($fn, 'surat_atau_nota_dinas') || str_contains($fn, 'pedoman');
 
-            case 29: // Pedoman 4 / Nota Dinas Evaluasi 2025
+            case 29: // Pedoman 4 / Nota Dinas Sosialisasi Evaluasi AKIP
                 return str_contains($fn, 'nodis_evaluasi') || str_contains($fn, 'nodis_eval_akip');
 
             case 30: // Memorandum Kepala Satker Data Kinerja
@@ -185,18 +230,54 @@ class LkeEvidenceHelper
             case 43: // Berita Acara Rapat Pleno
                 return str_contains($fn, 'ba_pleno');
 
-            case 44: // LHE AKIP 2023
-                return str_contains($fn, 'lhe') && str_contains($fn, '2023') && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
+            case 44: // LHE AKIP T-2 / T-3
+                return str_contains($fn, 'lhe') && (
+                    str_contains($fn, (string)$tPrev2) ||
+                    str_contains($fn, (string)($tPrev2 - 1)) ||
+                    str_contains($fn, 't-2') ||
+                    str_contains($fn, 't-3')
+                ) && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
 
             default:
+                // Dynamic support for custom/newly added Bukti Dukung (ID > 44)
+                $allMasters = self::getMasterBuktiList();
+                if (isset($allMasters[$bId])) {
+                    $mb = $allMasters[$bId];
+                    if (!empty($mb->format_nama_file)) {
+                        $prefix = strtolower(preg_replace('/\{[^}]+\}.*$/', '', $mb->format_nama_file));
+                        $prefix = trim($prefix, '_-. ');
+                        if (!empty($prefix) && str_contains($fn, $prefix)) {
+                            return true;
+                        }
+                    }
+                    if (!empty($mb->tabel_sumber)) {
+                        $tblKeyword = str_replace('sinori_sakip_', '', strtolower($mb->tabel_sumber));
+                        if (strlen($tblKeyword) >= 3 && str_contains($fn, $tblKeyword)) {
+                            return true;
+                        }
+                    }
+                    $words = array_filter(
+                        explode(' ', strtolower($mb->dokumen)),
+                        fn($w) => strlen($w) >= 4 && !in_array($w, ['satuan', 'kerja', 'tahun', 'pada', 'dan', 'atau', 'dokumen'])
+                    );
+                    $matchedCount = 0;
+                    foreach ($words as $w) {
+                        if (str_contains($fn, $w)) {
+                            $matchedCount++;
+                        }
+                    }
+                    if ($matchedCount >= 2 || (count($words) === 1 && $matchedCount === 1)) {
+                        return true;
+                    }
+                }
                 return false;
         }
     }
 
     /**
-     * Resolve the Master Bukti Dukung ID (1 to 44) for a given filename and criteria code.
+     * Resolve the Master Bukti Dukung ID for a given filename and criteria code.
      */
-    public static function resolveBuktiId(?string $filename, ?string $kriteriaKode = null): ?int
+    public static function resolveBuktiId(?string $filename, ?string $kriteriaKode = null, ?int $tahun = null): ?int
     {
         if (empty($filename)) {
             return null;
@@ -209,7 +290,7 @@ class LkeEvidenceHelper
         // 1. If candidate IDs exist for this criteria, test them in order
         if (!empty($candidateIds)) {
             foreach ($candidateIds as $cid) {
-                if (self::matchesBuktiId($filename, $cid)) {
+                if (self::matchesBuktiId($filename, $cid, $tahun)) {
                     return $cid;
                 }
             }
@@ -220,10 +301,11 @@ class LkeEvidenceHelper
             }
         }
 
-        // 2. Fallback: test across all standard 44 IDs
-        for ($i = 1; $i <= 44; $i++) {
-            if (self::matchesBuktiId($filename, $i)) {
-                return $i;
+        // 2. Fallback: test across all active master IDs in DB
+        $allIds = array_keys(self::getMasterBuktiList());
+        foreach ($allIds as $mid) {
+            if (self::matchesBuktiId($filename, (int)$mid, $tahun)) {
+                return (int)$mid;
             }
         }
 
@@ -281,7 +363,7 @@ class LkeEvidenceHelper
             } elseif (!empty($row->kode_bukti) && is_numeric($row->kode_bukti)) {
                 $bId = (int)$row->kode_bukti;
             } else {
-                $bId = self::resolveBuktiId($filename, $cleanKriteria);
+                $bId = self::resolveBuktiId($filename, $cleanKriteria, $tahun);
             }
 
             // Deduplication key
@@ -331,8 +413,8 @@ class LkeEvidenceHelper
         $tahun = null
     ): int {
         $cleanKode = self::cleanKriteriaKode($idKriteria);
-        $bId = self::resolveBuktiId($namaFile, $cleanKode);
         $tahunVal = $tahun ?? session('tahun_terpilih', date('Y'));
+        $bId = self::resolveBuktiId($namaFile, $cleanKode, (int)$tahunVal);
         $nowStr = now()->format('d/m/Y h:i A');
 
         // 1. Update/Insert legacy bukti_dukung

@@ -247,6 +247,11 @@
                                 <h2 class="fw-bold mb-0 text-success" id="cardGrandTotalEvaluasi">
                                     {{ number_format($scores['grand_total_evaluasi'] ?? $scores['grand_total_pk'], 2) }}
                                 </h2>
+                                <div class="mt-1">
+                                    <span class="badge {{ $scores['predikat_evaluasi']['badge'] ?? 'bg-secondary text-white' }} text-xs" id="badgePredikatEvaluasi">
+                                        Predikat {{ $scores['predikat_evaluasi']['predikat'] ?? '-' }} ({{ $scores['predikat_evaluasi']['keterangan'] ?? '-' }})
+                                    </span>
+                                </div>
                                 <div class="text-muted text-xs mt-1">Evaluator: {{ $evaluatorType === 'jamwas' ? 'JAMWAS' : ($evaluatorType === 'kejati' ? 'Kejati' : 'Pusat') }}</div>
                             </div>
 
@@ -258,6 +263,11 @@
                                 <h2 class="fw-bold mb-0 text-primary" id="cardGrandTotalPm">
                                     {{ number_format($scores['grand_total_pm'], 2) }}
                                 </h2>
+                                <div class="mt-1">
+                                    <span class="badge {{ $scores['predikat_pm']['badge'] ?? 'bg-secondary text-white' }} text-xs" id="badgePredikatPm">
+                                        Predikat {{ $scores['predikat_pm']['predikat'] ?? '-' }} ({{ $scores['predikat_pm']['keterangan'] ?? '-' }})
+                                    </span>
+                                </div>
                                 <div class="text-muted text-xs mt-1">Penilaian Mandiri</div>
                             </div>
                         </div>
@@ -271,6 +281,11 @@
                                 <h2 class="fw-bold mb-0 text-success" id="cardGrandTotal">
                                     {{ number_format($scores['grand_total_pm'], 2) }}
                                 </h2>
+                                <div class="mt-1">
+                                    <span class="badge {{ $scores['predikat_pm']['badge'] ?? 'bg-secondary text-white' }} text-xs" id="badgePredikatPm">
+                                        Predikat {{ $scores['predikat_pm']['predikat'] ?? '-' }} ({{ $scores['predikat_pm']['keterangan'] ?? '-' }})
+                                    </span>
+                                </div>
                                 <div class="text-muted text-xs mt-1">Penilaian Mandiri Satker</div>
                             </div>
 
@@ -282,6 +297,11 @@
                                 <h2 class="fw-bold mb-0 text-info" id="cardGrandTotalEvaluasi">
                                     {{ number_format($scores['grand_total_evaluasi'] ?? $scores['grand_total_pk'], 2) }}
                                 </h2>
+                                <div class="mt-1">
+                                    <span class="badge {{ $scores['predikat_evaluasi']['badge'] ?? 'bg-secondary text-white' }} text-xs" id="badgePredikatEvaluasi">
+                                        Predikat {{ $scores['predikat_evaluasi']['predikat'] ?? '-' }} ({{ $scores['predikat_evaluasi']['keterangan'] ?? '-' }})
+                                    </span>
+                                </div>
                                 <div class="text-muted text-xs mt-1">Evaluasi: {{ $evaluatorName }}</div>
                             </div>
                         </div>
@@ -434,19 +454,23 @@
 
                                     // Evaluasi koef state
                                     $hasKoefEval = $koefData && !is_null($koefData->nilai);
-                                    $koefEvalGradasi = ($koefData && $isCompleteEval) ? ($koefData->gradasi_label ?? 'BB') : 'BB';
+                                    $koefEvalGradasi = $subScoreData['gradasi_eval'] ?? (($koefData && $isCompleteEval) ? ($koefData->gradasi_label ?? 'BB') : 'BB');
                                     $koefEvalUraian = $koefData ? $koefData->uraian : '';
                                     $koefEvalBukti = $koefData ? ($koefData->bukti_dukung ?? '') : '';
                                     $koefEvalLink = $koefData ? ($koefData->link_bukti_dukung ?? '') : '';
 
                                     // PM koef state
                                     $hasKoefPm = $koefData && !is_null($koefData->pm_nilai);
-                                    $koefPmGradasi = ($koefData && $isCompletePm) ? ($koefData->pm_gradasi_label ?? 'BB') : 'BB';
+                                    $koefPmGradasi = $subScoreData['gradasi_pm'] ?? (($koefData && $isCompletePm) ? ($koefData->pm_gradasi_label ?? 'BB') : 'BB');
                                     $koefPmUraian = $koefData ? $koefData->pm_uraian : '';
                                     $koefPmBukti = $koefData ? ($koefData->pm_bukti_dukung ?? '') : '';
                                     $koefPmLink = $koefData ? ($koefData->pm_link_bukti_dukung ?? '') : '';
 
                                     $currentGradasi = $isModeEvaluasi ? $koefEvalGradasi : $koefPmGradasi;
+                                    $currentBadgeClass = \App\Models\LkeSubkomponenKoefisien::getGradasiBadgeClass($currentGradasi);
+                                    $currentPemenuhanPersen = $isModeEvaluasi 
+                                        ? ($subScoreData['pemenuhan_eval_persen'] ?? ($subTotalCnt > 0 ? round(($subEvalTerpenuhi / $subTotalCnt) * 100, 1) : 0))
+                                        : ($subScoreData['pemenuhan_pm_persen'] ?? ($subTotalCnt > 0 ? round(($subPmTerpenuhi / $subTotalCnt) * 100, 1) : 0));
                                     $currentUraian = $isModeEvaluasi ? $koefEvalUraian : $koefPmUraian;
                                     $currentHasFile = $isModeEvaluasi ? !empty($koefEvalLink) : !empty($koefPmLink);
                                 @endphp
@@ -467,7 +491,7 @@
                                             <span class="badge bg-white text-dark border text-xs" title="Bobot Subkomponen">
                                                 Bobot: <strong>{{ number_format($subScoreData['bobot'] ?? $sub->bobot, 1) }}</strong>
                                             </span>
-                                            <span class="badge {{ $activeKoef == 100 ? 'bg-success' : ($activeKoef == 90 ? 'bg-info text-dark' : 'bg-secondary') }} text-xs" id="subKoefBadge-{{ $subDashKode }}">
+                                            <span class="badge {{ $currentBadgeClass }} text-xs" id="subKoefBadge-{{ $subDashKode }}">
                                                 Koef: <strong id="subKoefVal-{{ $subDashKode }}">{{ $activeKoef }}%</strong> ({{ $currentGradasi }})
                                             </span>
                                             <span class="badge bg-secondary-subtle text-secondary text-xs" id="subKriteriaBadge-{{ $subDashKode }}">
@@ -484,16 +508,17 @@
                                     <div class="collapse show lke-subkomp-collapse" id="collapseSubkomp-{{ $subDashKode }}">
                                         <div class="card-body p-3 bg-white">
 
-                                <!-- SECTION GRADASI NILAI SUBKOMPONEN (Default 80% BB -> Pilihan A 90% atau AA 100%) -->
+                                @if($isSubKeberadaan)
+                                <!-- SECTION GRADASI NILAI SUBKOMPONEN (Khusus Subkomponen Keberadaan X.A) -->
                                 <div class="card border border-primary-subtle shadow-sm rounded-3 mb-3 bg-white" id="cardKoefisien-{{ $subDashKode }}">
                                     <div class="card-header bg-light py-2 px-3 d-flex flex-wrap justify-content-between align-items-center">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-sliders text-primary"></i>
                                             <strong class="text-xs text-dark">Section Gradasi Nilai Subkomponen {{ $sub->kode }}</strong>
-                                            <span class="text-xs text-muted">(Rumus: Rasio Terpenuhi × Koefisien × Bobot {{ number_format($subScoreData['bobot'] ?? $sub->bobot, 1) }})</span>
+                                            <span class="text-xs text-muted" id="rumusInfo-{{ $subDashKode }}">(Rumus: Koefisien Kluster {{ $activeKoef }}% × Bobot {{ number_format($subScoreData['bobot'] ?? $sub->bobot, 1) }})</span>
                                         </div>
                                         <div class="d-flex align-items-center gap-2 mt-1 mt-md-0">
-                                            <span class="badge {{ $activeKoef == 100 ? 'bg-success' : ($activeKoef == 90 ? 'bg-info text-dark' : 'bg-secondary') }} text-xs rounded-pill px-3 py-1 shadow-sm" id="badgeActiveKoef-{{ $subDashKode }}">
+                                            <span class="badge {{ $currentBadgeClass }} text-xs rounded-pill px-3 py-1 shadow-sm" id="badgeActiveKoef-{{ $subDashKode }}">
                                                 Koefisien Aktif: <strong id="valActiveKoef-{{ $subDashKode }}">{{ $activeKoef }}%</strong> 
                                                 ({{ $currentGradasi }})
                                             </span>
@@ -585,10 +610,10 @@
                                                             <i class="bi {{ $isModeEvaluasi ? 'bi-shield-check text-success' : 'bi-pencil-square text-warning' }} me-1"></i>
                                                             {{ $isModeEvaluasi ? 'Form Evaluasi Gradasi (' . ($evaluatorType === 'jamwas' ? 'JAMWAS' : 'Kejati') . '):' : 'Form Pengajuan Gradasi Satker (PM):' }}
                                                         </label>
-                                                        <span class="badge {{ $currentIsComplete ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-muted' }}" id="statusGate-{{ $subDashKode }}">
-                                                            <i class="bi {{ $currentIsComplete ? 'bi-unlock-fill' : 'bi-lock-fill' }} me-1"></i>
+                                                        <span class="badge {{ $currentIsComplete ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary border border-primary-subtle' }}" id="statusGate-{{ $subDashKode }}">
+                                                            <i class="bi {{ $currentIsComplete ? 'bi-unlock-fill' : 'bi-diagram-3-fill' }} me-1"></i>
                                                             <span id="statusGateText-{{ $subDashKode }}">
-                                                                {{ $currentIsComplete ? 'Gerbang Terbuka (100% Terpenuhi)' : 'Terkunci (' . $currentTerpenuhi . '/' . $subTotalCnt . ' Terpenuhi)' }}
+                                                                {{ $currentIsComplete ? 'Gerbang Terbuka (100% Terpenuhi)' : 'Kluster ' . $currentGradasi . ' (' . $activeKoef . '%) • ' . $currentTerpenuhi . '/' . $subTotalCnt . ' Terpenuhi' }}
                                                             </span>
                                                         </span>
                                                     </div>
@@ -596,16 +621,37 @@
                                                     <!-- Gate Alert Banner -->
                                                     <div id="gateAlertContainer-{{ $subDashKode }}">
                                                         @if(!$currentIsComplete)
-                                                            <div class="alert alert-secondary py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-light" id="gateAlert-{{ $subDashKode }}">
-                                                                <i class="bi bi-shield-lock-fill text-secondary fs-6"></i>
-                                                                <div><strong>Form Gradasi Terkunci (Koefisien Default 80%):</strong> Sub komponen belum memenuhi seluruh kriteria (baru <strong>{{ $currentTerpenuhi }}</strong> dari <strong>{{ $subTotalCnt }}</strong> kriteria terpenuhi). Form gradasi baru dapat diisi jika seluruh kriteria 100% Terpenuhi.</div>
+                                                            <div class="alert alert-info py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-info-subtle text-info-emphasis" id="gateAlert-{{ $subDashKode }}">
+                                                                <i class="bi bi-diagram-3-fill fs-6 text-primary"></i>
+                                                                <div><strong>Kluster Otomatis:</strong> Pemenuhan <strong>{{ $currentTerpenuhi }}</strong> dari <strong>{{ $subTotalCnt }}</strong> kriteria (<strong>{{ $currentPemenuhanPersen }}%</strong>) masuk ke <strong class="badge {{ $currentBadgeClass }} px-2 py-1 ms-1">Gradasi {{ $currentGradasi }} ({{ $activeKoef }}%)</strong>. Form pengajuan Gradasi Lanjutan (A / AA) terbuka jika seluruh kriteria 100% Terpenuhi.</div>
                                                             </div>
                                                         @elseif($currentNeedsGradasi)
                                                             <div class="alert alert-warning py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0" id="gateAlert-{{ $subDashKode }}">
                                                                 <i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i>
                                                                 <div><strong>Kriteria 100% Terpenuhi!</strong> Harap pilih opsi Gradasi Nilai (BB, A, atau AA) untuk sub komponen ini.</div>
                                                             </div>
+                                                        @else
+                                                            <div class="alert alert-success py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-success-subtle text-success" id="gateAlert-{{ $subDashKode }}">
+                                                                <i class="bi bi-check-circle-fill fs-6"></i>
+                                                                <div><strong>Kriteria 100% Terpenuhi!</strong> Gradasi aktif saat ini: <strong class="badge {{ $currentBadgeClass }} px-2 py-1 ms-1">Gradasi {{ $currentGradasi }} ({{ $activeKoef }}%)</strong>.</div>
+                                                            </div>
                                                         @endif
+                                                    </div>
+
+                                                    <!-- Visual Guide Rentang Kluster -->
+                                                    <div class="p-2 mb-2 rounded bg-light border text-xs">
+                                                        <div class="text-muted fw-semibold mb-1 d-flex justify-content-between align-items-center" style="font-size: 0.72rem;">
+                                                            <span><i class="bi bi-info-circle me-1"></i> Standar Klusterisasi Koefisien:</span>
+                                                            <span class="text-xs">Aktif: <strong class="badge {{ $currentBadgeClass }}" id="guideActiveBadge-{{ $subDashKode }}">{{ $currentGradasi }} ({{ $activeKoef }}%)</strong></span>
+                                                        </div>
+                                                        <div class="d-flex flex-wrap gap-1 align-items-center" style="font-size: 0.7rem;">
+                                                            <span class="badge {{ $currentGradasi === 'E' ? 'bg-secondary text-white' : 'bg-light text-muted border' }}">E: 0% (0)</span>
+                                                            <span class="badge {{ $currentGradasi === 'D' ? 'bg-danger text-white' : 'bg-light text-muted border' }}">D: &gt;0-25% (30%)</span>
+                                                            <span class="badge {{ $currentGradasi === 'C' ? 'bg-warning text-dark' : 'bg-light text-muted border' }}">C: &gt;25-50% (50%)</span>
+                                                            <span class="badge {{ $currentGradasi === 'CC' ? 'bg-warning-subtle text-dark border' : 'bg-light text-muted border' }}">CC: &gt;50-75% (60%)</span>
+                                                            <span class="badge {{ $currentGradasi === 'B' ? 'bg-primary-subtle text-primary border' : 'bg-light text-muted border' }}">B: &gt;75-&lt;100% (70%)</span>
+                                                            <span class="badge {{ $currentGradasi === 'BB' ? 'bg-primary text-white' : 'bg-light text-muted border' }}">BB: 100% (80%)</span>
+                                                        </div>
                                                     </div>
 
                                                     <!-- Container Pilihan Gradasi -->
@@ -737,6 +783,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
 
                                             <!-- Header Section Kriteria di bawah Subkomponen -->
                                             <div class="d-flex justify-content-between align-items-center mb-2 px-1 flex-wrap gap-2">
@@ -857,6 +904,15 @@
                                                                 <span class="text-muted text-xs fst-italic">Tidak memerlukan bukti dukung khusus.</span>
                                                             @endif
                                                         </div>
+
+                                                        @if(!empty($cr->langkah_kerja))
+                                                            <div class="mt-2 p-2 bg-light-subtle rounded-2 border border-secondary-subtle">
+                                                                <div class="text-xs fw-bold text-secondary mb-1 d-flex align-items-center">
+                                                                    <i class="bi bi-list-task text-primary me-1"></i> Langkah Kerja:
+                                                                </div>
+                                                                <div class="text-xs text-dark" style="white-space: pre-line; line-height: 1.5;">{!! nl2br(e($cr->langkah_kerja)) !!}</div>
+                                                            </div>
+                                                        @endif
 
                                                         @if($isModeEvaluasi)
                                                             <!-- Hasil Penilaian Mandiri (PM) Satker yang Sedang Dievaluasi -->
@@ -1077,6 +1133,348 @@
                                     </div>
                                 @endforeach
                             </div>
+
+                            @if(str_ends_with($sub->kode, '.C'))
+                                @php
+                                    $compPrefix = explode('.', $sub->kode)[0];
+                                    $pairCodeB = "{$compPrefix}.B";
+                                    $pairCodeC = "{$compPrefix}.C";
+                                    $pairDashKode = "{$compPrefix}-BC";
+                                    $pairSafeKode = "{$compPrefix}_BC";
+
+                                    $scoreDataB = $scores['subkomponen'][$pairCodeB] ?? [];
+                                    $scoreDataC = $scores['subkomponen'][$pairCodeC] ?? [];
+
+                                    $subTotalCntB = $scoreDataB['total_cnt'] ?? 0;
+                                    $subTotalCntC = $scoreDataC['total_cnt'] ?? 0;
+
+                                    $subEvalTerpenuhiB = $scoreDataB['terpenuhi_eval_cnt'] ?? 0;
+                                    $subEvalTerpenuhiC = $scoreDataC['terpenuhi_eval_cnt'] ?? 0;
+
+                                    $subPmTerpenuhiB = $scoreDataB['terpenuhi_pm_cnt'] ?? 0;
+                                    $subPmTerpenuhiC = $scoreDataC['terpenuhi_pm_cnt'] ?? 0;
+
+                                    $isCompleteEvalB = $scoreDataB['is_100_eval'] ?? false;
+                                    $isCompleteEvalC = $scoreDataC['is_100_eval'] ?? false;
+                                    $isPairCompleteEval = $isCompleteEvalB && $isCompleteEvalC;
+
+                                    $isCompletePmB = $scoreDataB['is_100_pm'] ?? false;
+                                    $isCompletePmC = $scoreDataC['is_100_pm'] ?? false;
+                                    $isPairCompletePm = $isCompletePmB && $isCompletePmC;
+
+                                    $currentPairIsComplete = $isModeEvaluasi ? $isPairCompleteEval : $isPairCompletePm;
+                                    $currentPairTerpenuhiB = $isModeEvaluasi ? $subEvalTerpenuhiB : $subPmTerpenuhiB;
+                                    $currentPairTerpenuhiC = $isModeEvaluasi ? $subEvalTerpenuhiC : $subPmTerpenuhiC;
+
+                                    $currentPairPemenuhanB = $isModeEvaluasi 
+                                        ? ($scoreDataB['pemenuhan_eval_persen'] ?? ($subTotalCntB > 0 ? round(($subEvalTerpenuhiB / $subTotalCntB) * 100, 1) : 0))
+                                        : ($scoreDataB['pemenuhan_pm_persen'] ?? ($subTotalCntB > 0 ? round(($subPmTerpenuhiB / $subTotalCntB) * 100, 1) : 0));
+                                    $currentPairPemenuhanC = $isModeEvaluasi 
+                                        ? ($scoreDataC['pemenuhan_eval_persen'] ?? ($subTotalCntC > 0 ? round(($subEvalTerpenuhiC / $subTotalCntC) * 100, 1) : 0))
+                                        : ($scoreDataC['pemenuhan_pm_persen'] ?? ($subTotalCntC > 0 ? round(($subPmTerpenuhiC / $subTotalCntC) * 100, 1) : 0));
+
+                                    // Koefisien records: cek record C atau B
+                                    $koefDataPair = $subkomponenKoefisien->get($pairCodeC) ?: $subkomponenKoefisien->get($pairCodeB);
+
+                                    $hasKoefEvalPair = $koefDataPair && !is_null($koefDataPair->nilai);
+                                    $koefEvalGradasiPair = $scoreDataC['gradasi_eval'] ?? (($koefDataPair && $isPairCompleteEval) ? ($koefDataPair->gradasi_label ?? 'BB') : 'BB');
+                                    $koefEvalUraianPair = $koefDataPair ? $koefDataPair->uraian : '';
+                                    $koefEvalBuktiPair = $koefDataPair ? ($koefDataPair->bukti_dukung ?? '') : '';
+                                    $koefEvalLinkPair = $koefDataPair ? ($koefDataPair->link_bukti_dukung ?? '') : '';
+
+                                    $hasKoefPmPair = $koefDataPair && !is_null($koefDataPair->pm_nilai);
+                                    $koefPmGradasiPair = $scoreDataC['gradasi_pm'] ?? (($koefDataPair && $isPairCompletePm) ? ($koefDataPair->pm_gradasi_label ?? 'BB') : 'BB');
+                                    $koefPmUraianPair = $koefDataPair ? $koefDataPair->pm_uraian : '';
+                                    $koefPmBuktiPair = $koefDataPair ? ($koefDataPair->pm_bukti_dukung ?? '') : '';
+                                    $koefPmLinkPair = $koefDataPair ? ($koefDataPair->pm_link_bukti_dukung ?? '') : '';
+
+                                    $currentPairGradasi = $isModeEvaluasi ? $koefEvalGradasiPair : $koefPmGradasiPair;
+                                    $currentPairBadgeClass = \App\Models\LkeSubkomponenKoefisien::getGradasiBadgeClass($currentPairGradasi);
+
+                                    $activePairKoef = $isModeEvaluasi 
+                                        ? ($scoreDataC['koefisien_evaluasi'] ?? 80)
+                                        : ($scoreDataC['koefisien_pm'] ?? 80);
+
+                                    $currentPairUraian = $isModeEvaluasi ? $koefEvalUraianPair : $koefPmUraianPair;
+                                    $currentPairHasFile = $isModeEvaluasi ? !empty($koefEvalLinkPair) : !empty($koefPmLinkPair);
+
+                                    $currentPairNeedsGradasi = $isModeEvaluasi 
+                                        ? ($isPairCompleteEval && (!$koefDataPair || empty($koefDataPair->nilai)))
+                                        : ($isPairCompletePm && (!$koefDataPair || empty($koefDataPair->pm_nilai)));
+                                @endphp
+
+                                <!-- SECTION GRADASI NILAI GABUNGAN SUBKOMPONEN X.B & X.C -->
+                                <div class="card border border-primary shadow-sm rounded-3 mt-4 mb-2 bg-white" id="cardKoefisienPair-{{ $pairDashKode }}">
+                                    <div class="card-header bg-primary-subtle py-2 px-3 d-flex flex-wrap justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-sliders2-vertical text-primary fs-6"></i>
+                                            <div>
+                                                <strong class="text-xs text-dark">Section Gradasi Nilai Gabungan Subkomponen {{ $pairCodeB }} & {{ $pairCodeC }}</strong>
+                                                <div class="text-muted" style="font-size: 0.72rem;" id="rumusInfoPair-{{ $pairDashKode }}">
+                                                    Rumus: Koefisien Kluster {{ $activePairKoef }}% × Bobot ({{ $pairCodeB }}: {{ number_format($scoreDataB['bobot'] ?? 0, 1) }} & {{ $pairCodeC }}: {{ number_format($scoreDataC['bobot'] ?? 0, 1) }})
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 mt-1 mt-md-0">
+                                            <span class="badge {{ $currentPairBadgeClass }} text-xs rounded-pill px-3 py-1 shadow-sm" id="badgeActiveKoefPair-{{ $pairDashKode }}">
+                                                Koefisien Aktif: <strong id="valActiveKoefPair-{{ $pairDashKode }}">{{ $activePairKoef }}%</strong> 
+                                                ({{ $currentPairGradasi }})
+                                            </span>
+                                            <button class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapseKoefPair-{{ $pairDashKode }}" aria-expanded="true">
+                                                <i class="bi bi-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="collapse show" id="collapseKoefPair-{{ $pairDashKode }}">
+                                        <div class="card-body p-3">
+                                            <!-- Status Pemenuhan Kedua Subkomponen (B & C) -->
+                                            <div class="p-2 mb-3 rounded-2 bg-light border d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                                    <span class="text-xs fw-semibold text-muted">Status Pemenuhan Kriteria:</span>
+                                                    <span class="badge {{ $subEvalTerpenuhiB === $subTotalCntB && $subTotalCntB > 0 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary' }} text-xs" id="pairStatusB-{{ $pairDashKode }}">
+                                                        {{ $pairCodeB }}: {{ $currentPairTerpenuhiB }}/{{ $subTotalCntB }} Terpenuhi ({{ $currentPairPemenuhanB }}%)
+                                                    </span>
+                                                    <span class="badge {{ $subEvalTerpenuhiC === $subTotalCntC && $subTotalCntC > 0 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary' }} text-xs" id="pairStatusC-{{ $pairDashKode }}">
+                                                        {{ $pairCodeC }}: {{ $currentPairTerpenuhiC }}/{{ $subTotalCntC }} Terpenuhi ({{ $currentPairPemenuhanC }}%)
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span class="badge {{ $currentPairIsComplete ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-dark border border-warning-subtle' }} text-xs" id="statusGatePair-{{ $pairDashKode }}">
+                                                        @if($currentPairIsComplete)
+                                                            <i class="bi bi-unlock-fill me-1"></i> Gerbang Terbuka (100% Terpenuhi)
+                                                        @else
+                                                            <i class="bi bi-lock-fill me-1 text-danger"></i> Gerbang Terkunci (Perlu 100% pada {{ $pairCodeB }} & {{ $pairCodeC }})
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <!-- Kolom Kiri: Riwayat / Usulan Pihak Lain -->
+                                                <div class="col-lg-6">
+                                                    @if($isModeEvaluasi)
+                                                        <!-- Evaluator melihat usulan gradasi dari Satker (PM) -->
+                                                        <div class="p-3 rounded-3 border border-primary-subtle bg-white h-100">
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <span class="text-xs fw-bold text-primary text-uppercase">
+                                                                    <i class="bi bi-file-earmark-person-fill me-1"></i> Usulan Gradasi Satker (PM)
+                                                                </span>
+                                                                <span class="badge {{ $koefPmGradasiPair === 'AA' ? 'bg-success' : ($koefPmGradasiPair === 'A' ? 'bg-info text-dark' : 'bg-secondary') }} rounded-pill px-2 py-1 text-xs">
+                                                                    Gradasi {{ $koefPmGradasiPair }} ({{ $koefDataPair ? $koefDataPair->effective_pm_koefisien : 80 }}%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="text-xs text-muted mb-2">
+                                                                <strong>Status Usulan PM:</strong> {{ $hasKoefPmPair ? 'Gradasi ' . $koefPmGradasiPair . ' (' . ($koefDataPair ? $koefDataPair->effective_pm_koefisien : 80) . '%)' : 'Belum memilih gradasi (Default 80%)' }}
+                                                            </div>
+                                                            <div class="p-2 rounded bg-light border text-xs text-dark mb-2 font-monospace" style="min-height: 55px; white-space: pre-wrap;">
+                                                                {{ $koefPmUraianPair ?: 'Satker tidak mencantumkan uraian penyesuaian gradasi.' }}
+                                                            </div>
+                                                            @if(!empty($koefPmLinkPair))
+                                                                <div class="text-xs">
+                                                                    <i class="bi bi-paperclip text-primary me-1"></i> Bukti Dukung PM:
+                                                                    <a href="{{ asset($koefPmLinkPair) }}" target="_blank" class="fw-semibold text-primary text-decoration-underline">
+                                                                        {{ $koefPmBuktiPair ?: 'Unduh Dokumen Bukti PM' }}
+                                                                    </a>
+                                                                </div>
+                                                            @else
+                                                                <div class="text-xs text-muted">
+                                                                    <i class="bi bi-paperclip me-1"></i> Tidak ada file bukti dukung gradasi PM diunggah.
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @else
+                                                        <!-- Satker melihat hasil evaluasi gradasi dari Evaluator (JAMWAS / Kejati) -->
+                                                        <div class="p-3 rounded-3 border border-success-subtle bg-white h-100">
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <span class="text-xs fw-bold text-success text-uppercase">
+                                                                    <i class="bi bi-shield-check text-success me-1"></i> Hasil Evaluasi Gradasi ({{ $evaluatorName }}):
+                                                                </span>
+                                                                <span class="badge {{ $koefEvalGradasiPair === 'AA' ? 'bg-success' : ($koefEvalGradasiPair === 'A' ? 'bg-info text-dark' : 'bg-secondary') }} rounded-pill px-2 py-1 text-xs">
+                                                                    Gradasi {{ $koefEvalGradasiPair }} ({{ $koefDataPair ? $koefDataPair->effective_koefisien : 80 }}%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="text-xs text-muted mb-2">
+                                                                <strong>Penetapan Evaluator:</strong> {{ $hasKoefEvalPair ? 'Gradasi ' . $koefEvalGradasiPair . ' (' . ($koefDataPair ? $koefDataPair->effective_koefisien : 80) . '%)' : 'Mengikuti kluster pemenuhan kriteria' }}
+                                                            </div>
+                                                            <div class="p-2 rounded bg-light border text-xs text-dark mb-2 font-monospace" style="min-height: 55px; white-space: pre-wrap;">
+                                                                {{ $koefEvalUraianPair ?: 'Evaluator belum memberikan catatan khusus terkait gradasi ini.' }}
+                                                            </div>
+                                                            @if(!empty($koefEvalLinkPair))
+                                                                <div class="text-xs">
+                                                                    <i class="bi bi-paperclip text-success me-1"></i> Bukti Evaluasi:
+                                                                    <a href="{{ asset($koefEvalLinkPair) }}" target="_blank" class="fw-semibold text-success text-decoration-underline">
+                                                                        {{ $koefEvalBuktiPair ?: 'Unduh Dokumen Bukti Evaluasi' }}
+                                                                    </a>
+                                                                </div>
+                                                            @else
+                                                                <div class="text-xs text-muted">
+                                                                    <i class="bi bi-paperclip me-1"></i> Tidak ada file lampiran evaluasi.
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                </div>
+
+                                                <!-- Kolom Kanan: Form Penentuan Gradasi Aktif Pasangan B & C -->
+                                                <div class="col-lg-6">
+                                                    <div class="p-3 rounded-3 border bg-white h-100 d-flex flex-column justify-content-between">
+                                                        <div>
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <span class="text-xs fw-bold text-dark text-uppercase">
+                                                                    {{ $isModeEvaluasi ? 'Form Evaluasi Gradasi (' . ($evaluatorType === 'jamwas' ? 'JAMWAS' : 'Kejati') . '):' : 'Form Pengajuan Gradasi Satker (PM):' }}
+                                                                </span>
+                                                            </div>
+
+                                                            <!-- Alert Status Gerbang Kunci -->
+                                                            <div id="gateAlertContainerPair-{{ $pairDashKode }}">
+                                                                @if(!$currentPairIsComplete)
+                                                                    <div class="alert alert-info py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-info-subtle text-info-emphasis">
+                                                                        <i class="bi bi-diagram-3-fill fs-6 text-primary"></i>
+                                                                        <div>
+                                                                            <strong>Status Pemenuhan:</strong> Subkomponen <strong>{{ $pairCodeB }}</strong> (<strong>{{ $currentPairTerpenuhiB }}/{{ $subTotalCntB }}</strong>) dan <strong>{{ $pairCodeC }}</strong> (<strong>{{ $currentPairTerpenuhiC }}/{{ $subTotalCntC }}</strong>). Form pengajuan Gradasi Lanjutan (A / AA) terbuka jika <strong>KEDUA</strong> subkomponen 100% Terpenuhi.
+                                                                        </div>
+                                                                    </div>
+                                                                @elseif($currentPairNeedsGradasi)
+                                                                    <div class="alert alert-warning py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0">
+                                                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i>
+                                                                        <div><strong>Kriteria 100% Terpenuhi!</strong> Harap pilih opsi Gradasi Nilai (BB, A, atau AA) untuk pasangan Subkomponen {{ $pairCodeB }} & {{ $pairCodeC }}.</div>
+                                                                    </div>
+                                                                @else
+                                                                    <div class="alert alert-success py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-success-subtle text-success">
+                                                                        <i class="bi bi-check-circle-fill fs-6"></i>
+                                                                        <div><strong>Kriteria 100% Terpenuhi!</strong> Gradasi aktif saat ini: <strong class="badge {{ $currentPairBadgeClass }} px-2 py-1 ms-1">Gradasi {{ $currentPairGradasi }} ({{ $activePairKoef }}%)</strong>.</div>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+
+                                                            <!-- Container Pilihan Gradasi -->
+                                                            <div id="gradasiFieldsPair-{{ $pairDashKode }}" class="{{ !$currentPairIsComplete ? 'opacity-50 pe-none' : '' }}">
+                                                                <div class="text-xs fw-semibold text-muted mb-1">Pilih Gradasi Nilai Gabungan Subkomponen:</div>
+                                                                
+                                                                <div class="d-flex flex-column gap-2 mb-2">
+                                                                    <!-- Opsi BB -->
+                                                                    <div class="form-check p-2 rounded border bg-light">
+                                                                        <input class="form-check-input radio-gradasi" 
+                                                                               type="radio" 
+                                                                               name="gradasi_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                               id="gradasi_bb_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                               value="BB" 
+                                                                               data-pair="true"
+                                                                               data-pair-prefix="{{ $compPrefix }}"
+                                                                               data-subkomponen="{{ $compPrefix }}.BC"
+                                                                               data-koef="80"
+                                                                               {{ ($currentPairGradasi === 'BB' || empty($currentPairGradasi)) ? 'checked' : '' }}
+                                                                               {{ !$currentPairIsComplete ? 'disabled' : '' }}>
+                                                                        <label class="form-check-label text-xs cursor-pointer d-block" for="gradasi_bb_{{ $currentTahap }}_{{ $pairSafeKode }}">
+                                                                            <div class="d-flex align-items-center justify-content-between">
+                                                                                <strong class="text-dark"><span class="badge bg-secondary text-xs me-1">BB</span> Koefisien 80%</strong>
+                                                                                <span class="badge bg-light text-muted border text-xs">Standar Pemenuhan</span>
+                                                                            </div>
+                                                                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                                                                Jika kualitas seluruh kriteria {{ $pairCodeB }} dan pemanfaatan {{ $pairCodeC }} telah terpenuhi (100%).
+                                                                            </div>
+                                                                        </label>
+                                                                    </div>
+
+                                                                    <!-- Opsi A -->
+                                                                    <div class="form-check p-2 rounded border bg-light">
+                                                                        <input class="form-check-input radio-gradasi" 
+                                                                               type="radio" 
+                                                                               name="gradasi_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                               id="gradasi_a_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                               value="A" 
+                                                                               data-pair="true"
+                                                                               data-pair-prefix="{{ $compPrefix }}"
+                                                                               data-subkomponen="{{ $compPrefix }}.BC"
+                                                                               data-koef="90"
+                                                                               {{ $currentPairGradasi === 'A' ? 'checked' : '' }}
+                                                                               {{ !$currentPairIsComplete ? 'disabled' : '' }}>
+                                                                        <label class="form-check-label text-xs cursor-pointer d-block" for="gradasi_a_{{ $currentTahap }}_{{ $pairSafeKode }}">
+                                                                            <div class="d-flex align-items-center justify-content-between">
+                                                                                <strong class="text-info-emphasis"><span class="badge bg-info text-dark text-xs me-1">A</span> Koefisien 90%</strong>
+                                                                                <span class="badge bg-info-subtle text-dark border text-xs">Kualitas & Pemanfaatan Teruji</span>
+                                                                            </div>
+                                                                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                                                                Jika kualitas {{ $pairCodeB }} dan pemanfaatan {{ $pairCodeC }} 100% terpenuhi, berkesinambungan, dan didukung bukti kinerja yang teruji.
+                                                                            </div>
+                                                                        </label>
+                                                                    </div>
+
+                                                                    <!-- Opsi AA -->
+                                                                    <div class="form-check p-2 rounded border bg-light">
+                                                                        <input class="form-check-input radio-gradasi" 
+                                                                               type="radio" 
+                                                                               name="gradasi_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                               id="gradasi_aa_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                               value="AA" 
+                                                                               data-pair="true"
+                                                                               data-pair-prefix="{{ $compPrefix }}"
+                                                                               data-subkomponen="{{ $compPrefix }}.BC"
+                                                                               data-koef="100"
+                                                                               {{ $currentPairGradasi === 'AA' ? 'checked' : '' }}
+                                                                               {{ !$currentPairIsComplete ? 'disabled' : '' }}>
+                                                                        <label class="form-check-label text-xs cursor-pointer d-block" for="gradasi_aa_{{ $currentTahap }}_{{ $pairSafeKode }}">
+                                                                            <div class="d-flex align-items-center justify-content-between">
+                                                                                <strong class="text-success"><span class="badge bg-success text-xs me-1">AA</span> Koefisien 100%</strong>
+                                                                                <span class="badge bg-success-subtle text-success border text-xs">Keunggulan Nasional</span>
+                                                                            </div>
+                                                                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                                                                Jika kualitas dan pemanfaatan 100% terpenuhi serta terdapat <strong>upaya inovatif yang layak menjadi percontohan di tingkat nasional</strong>.
+                                                                            </div>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Kotak Input Uraian / Penjelasan Gabungan -->
+                                                                <div class="mb-2">
+                                                                    <label class="text-xs fw-semibold text-muted mb-1">
+                                                                        <i class="bi bi-chat-left-text me-1"></i> Uraian / Penjelasan <span class="text-danger req-star-uraian-pair-{{ $pairDashKode }} {{ ($currentPairGradasi === 'BB' || empty($currentPairGradasi)) ? 'd-none' : '' }}">(Wajib diisi untuk A / AA)*</span>:
+                                                                    </label>
+                                                                    <textarea class="form-control form-control-sm text-sm input-uraian-koef" 
+                                                                              id="uraian_koef_{{ $currentTahap }}_{{ $pairSafeKode }}" 
+                                                                              rows="2" 
+                                                                              placeholder="Tuliskan uraian dan penjelasan pemenuhan kriteria gradasi kualitas & pemanfaatan..." 
+                                                                              style="resize: vertical;">{{ $currentPairUraian }}</textarea>
+                                                                </div>
+
+                                                                <!-- Input Bukti Dukung (File Upload - Opsional) -->
+                                                                <div class="mb-2">
+                                                                    <label class="text-xs fw-semibold text-muted mb-1">
+                                                                        <i class="bi bi-paperclip me-1"></i> Upload Bukti Dukung Gabungan (Opsional):
+                                                                    </label>
+                                                                    <input type="file" 
+                                                                           class="form-control form-control-sm text-xs mb-1" 
+                                                                           id="file_koef_{{ $currentTahap }}_{{ $pairSafeKode }}">
+                                                                    @if($currentPairHasFile)
+                                                                        <div class="text-xs text-success" id="fileStatusPair-{{ $pairDashKode }}">
+                                                                            <i class="bi bi-check-circle-fill me-1"></i> File telah terunggah sebelumnya. Unggah lagi jika ingin mengganti.
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+
+                                                                <div class="text-end">
+                                                                    <button type="button" 
+                                                                            class="btn btn-sm btn-emerald px-3 rounded-pill btn-save-koef" 
+                                                                            id="btnSaveKoefPair-{{ $pairDashKode }}"
+                                                                            data-pair="true"
+                                                                            data-pair-prefix="{{ $compPrefix }}"
+                                                                            data-subkomponen="{{ $compPrefix }}.BC" 
+                                                                            data-tahap="{{ $currentTahap }}"
+                                                                            data-subtype="kualitas_pemanfaatan"
+                                                                            data-has-file="{{ $currentPairHasFile ? 'true' : 'false' }}"
+                                                                            {{ !$currentPairIsComplete ? 'disabled' : '' }}>
+                                                                        <i class="bi bi-save me-1"></i> Simpan Gradasi {{ $pairCodeB }} & {{ $pairCodeC }} ({{ $isModeEvaluasi ? 'Evaluasi' : 'PM' }})
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -1126,6 +1524,54 @@ document.addEventListener('DOMContentLoaded', function () {
         toast.show();
     }
 
+    // Helper kelas badge Bootstrap berdasarkan gradasi nilai
+    function getGradasiBadgeClass(grad) {
+        switch (grad) {
+            case 'AA': return 'bg-success text-white';
+            case 'A':  return 'bg-info text-dark';
+            case 'BB': return 'bg-primary text-white';
+            case 'B':  return 'bg-primary-subtle text-primary border border-primary-subtle';
+            case 'CC': return 'bg-warning-subtle text-dark border border-warning-subtle';
+            case 'C':  return 'bg-warning text-dark';
+            case 'D':  return 'bg-danger text-white';
+            case 'E':  return 'bg-secondary text-white';
+            default:   return 'bg-secondary text-white';
+        }
+    }
+
+    // Helper Predikat AKIP berdasarkan Grand Total Skor
+    function getPredikatAkip(score) {
+        const val = parseFloat(score);
+        if (val > 90.0) return { predikat: 'AA', keterangan: 'Sangat Memuaskan', badge: 'bg-success text-white' };
+        if (val > 80.0) return { predikat: 'A',  keterangan: 'Memuaskan', badge: 'bg-info text-dark' };
+        if (val > 70.0) return { predikat: 'BB', keterangan: 'Sangat Baik', badge: 'bg-primary text-white' };
+        if (val > 60.0) return { predikat: 'B',  keterangan: 'Baik', badge: 'bg-primary-subtle text-primary border border-primary-subtle' };
+        if (val > 50.0) return { predikat: 'CC', keterangan: 'Cukup', badge: 'bg-warning-subtle text-dark border border-warning-subtle' };
+        if (val > 30.0) return { predikat: 'C',  keterangan: 'Kurang', badge: 'bg-warning text-dark' };
+        return { predikat: 'D', keterangan: 'Sangat Kurang', badge: 'bg-danger text-white' };
+    }
+
+    // Pembaruan dinamis badge Predikat pada kartu Grand Total
+    function updateGrandTotalPredikats(scores) {
+        if (!scores) return;
+        const valEval = scores.grand_total_evaluasi ?? scores.grand_total_pk;
+        const valPm = scores.grand_total_pm;
+        
+        const badgePredEval = document.getElementById('badgePredikatEvaluasi');
+        if (badgePredEval && valEval !== undefined) {
+            const pEval = getPredikatAkip(valEval);
+            badgePredEval.className = `badge ${pEval.badge} text-xs`;
+            badgePredEval.textContent = `Predikat ${pEval.predikat} (${pEval.keterangan})`;
+        }
+
+        const badgePredPm = document.getElementById('badgePredikatPm');
+        if (badgePredPm && valPm !== undefined) {
+            const pPm = getPredikatAkip(valPm);
+            badgePredPm.className = `badge ${pPm.badge} text-xs`;
+            badgePredPm.textContent = `Predikat ${pPm.predikat} (${pPm.keterangan})`;
+        }
+    }
+
     // Inisialisasi Select2 untuk kemudahan pencarian Satuan Kerja
     if (window.jQuery && jQuery.fn.select2) {
         $('select[name="id_satker"]').select2({
@@ -1152,15 +1598,28 @@ document.addEventListener('DOMContentLoaded', function () {
     // Toggle required indicator for Uraian when gradasi changes (BB vs A/AA)
     document.querySelectorAll('.radio-gradasi').forEach(radio => {
         radio.addEventListener('change', function () {
-            const sub = this.dataset.subkomponen;
             const gradVal = this.value;
-            const dashSub = sub.replace(/\./g, '-');
-            const reqStar = document.querySelector(`.req-star-uraian-${dashSub}`);
-            if (reqStar) {
-                if (gradVal === 'BB') {
-                    reqStar.classList.add('d-none');
-                } else {
-                    reqStar.classList.remove('d-none');
+            const isPair = this.dataset.pair === 'true';
+            if (isPair) {
+                const pairPrefix = this.dataset.pairPrefix;
+                const reqStar = document.querySelector(`.req-star-uraian-pair-${pairPrefix}-BC`);
+                if (reqStar) {
+                    if (gradVal === 'BB') {
+                        reqStar.classList.add('d-none');
+                    } else {
+                        reqStar.classList.remove('d-none');
+                    }
+                }
+            } else {
+                const sub = this.dataset.subkomponen;
+                const dashSub = sub ? sub.replace(/\./g, '-') : '';
+                const reqStar = document.querySelector(`.req-star-uraian-${dashSub}`);
+                if (reqStar) {
+                    if (gradVal === 'BB') {
+                        reqStar.classList.add('d-none');
+                    } else {
+                        reqStar.classList.remove('d-none');
+                    }
                 }
             }
         });
@@ -1220,9 +1679,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Save Subkomponen Gradasi AJAX Handler
     document.querySelectorAll('.btn-save-koef').forEach(btn => {
         btn.addEventListener('click', function () {
+            const isPair = this.getAttribute('data-pair') === 'true';
+            const pairPrefix = this.getAttribute('data-pair-prefix');
             const subKode = this.getAttribute('data-subkomponen');
-            const safeName = subKode.replace(/\./g, '_');
-            const dashName = subKode.replace(/\./g, '-');
+            const safeName = isPair ? `${pairPrefix}_BC` : subKode.replace(/\./g, '_');
+            const dashName = isPair ? `${pairPrefix}-BC` : subKode.replace(/\./g, '-');
             const tahap = this.getAttribute('data-tahap') || '{{ $currentTahap }}';
 
             // Find selected gradasi radio (BB, A, AA)
@@ -1295,29 +1756,59 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Update coefficient badges
                     const effKoef = data.effective_koefisien;
                     const resGradasi = data.gradasi || gradasi;
-                    const badgeVal = document.getElementById(`valActiveKoef-${dashName}`);
-                    const badgeEl = document.getElementById(`badgeActiveKoef-${dashName}`);
-                    const subKoefVal = document.getElementById(`subKoefVal-${dashName}`);
-                    const subKoefBadge = document.getElementById(`subKoefBadge-${dashName}`);
+                    const higherClass = getGradasiBadgeClass(resGradasi);
 
-                    if (badgeVal) badgeVal.textContent = effKoef + '%';
-                    if (subKoefVal) subKoefVal.textContent = effKoef + '%';
+                    if (isPair) {
+                        const valActivePair = document.getElementById(`valActiveKoefPair-${dashName}`);
+                        const badgeActivePair = document.getElementById(`badgeActiveKoefPair-${dashName}`);
+                        if (valActivePair) valActivePair.textContent = effKoef + '%';
+                        if (badgeActivePair) {
+                            badgeActivePair.className = `badge ${higherClass} text-xs rounded-pill px-3 py-1 shadow-sm`;
+                            badgeActivePair.innerHTML = `Koefisien Aktif: <strong id="valActiveKoefPair-${dashName}">${effKoef}%</strong> (${resGradasi})`;
+                        }
 
-                    const higherClass = (effKoef == 100) ? 'bg-success' : (effKoef == 90 ? 'bg-info text-dark' : 'bg-secondary');
+                        // Perbarui badge di kedua header Subkomponen (B dan C)
+                        ['B', 'C'].forEach(suf => {
+                            const sDash = `${pairPrefix}-${suf}`;
+                            const subKoefVal = document.getElementById(`subKoefVal-${sDash}`);
+                            const subKoefBadge = document.getElementById(`subKoefBadge-${sDash}`);
+                            if (subKoefVal) subKoefVal.textContent = effKoef + '%';
+                            if (subKoefBadge) {
+                                subKoefBadge.className = `badge ${higherClass} text-xs`;
+                                subKoefBadge.innerHTML = `Koef: <strong id="subKoefVal-${sDash}">${effKoef}%</strong> (${resGradasi})`;
+                            }
+                        });
 
-                    if (badgeEl) {
-                        badgeEl.className = `badge ${higherClass} text-xs rounded-pill px-3 py-1 shadow-sm`;
-                        badgeEl.innerHTML = `Koefisien Aktif: <strong id="valActiveKoef-${dashName}">${effKoef}%</strong> (${resGradasi})`;
-                    }
-                    if (subKoefBadge) {
-                        subKoefBadge.className = `badge ${higherClass} text-xs`;
-                        subKoefBadge.innerHTML = `Koef: <strong id="subKoefVal-${dashName}">${effKoef}%</strong> (${resGradasi})`;
-                    }
+                        const gateAlertContainer = document.getElementById(`gateAlertContainerPair-${dashName}`);
+                        if (gateAlertContainer) gateAlertContainer.innerHTML = '';
+                    } else {
+                        const badgeVal = document.getElementById(`valActiveKoef-${dashName}`);
+                        const badgeEl = document.getElementById(`badgeActiveKoef-${dashName}`);
+                        const subKoefVal = document.getElementById(`subKoefVal-${dashName}`);
+                        const subKoefBadge = document.getElementById(`subKoefBadge-${dashName}`);
 
-                    // Bersihkan alert peringatan jika ada
-                    const gateAlertContainer = document.getElementById(`gateAlertContainer-${dashName}`);
-                    if (gateAlertContainer) {
-                        gateAlertContainer.innerHTML = '';
+                        if (badgeVal) badgeVal.textContent = effKoef + '%';
+                        if (subKoefVal) subKoefVal.textContent = effKoef + '%';
+
+                        const guideActiveBadge = document.getElementById(`guideActiveBadge-${dashName}`);
+
+                        if (badgeEl) {
+                            badgeEl.className = `badge ${higherClass} text-xs rounded-pill px-3 py-1 shadow-sm`;
+                            badgeEl.innerHTML = `Koefisien Aktif: <strong id="valActiveKoef-${dashName}">${effKoef}%</strong> (${resGradasi})`;
+                        }
+                        if (subKoefBadge) {
+                            subKoefBadge.className = `badge ${higherClass} text-xs`;
+                            subKoefBadge.innerHTML = `Koef: <strong id="subKoefVal-${dashName}">${effKoef}%</strong> (${resGradasi})`;
+                        }
+                        if (guideActiveBadge) {
+                            guideActiveBadge.className = `badge ${higherClass}`;
+                            guideActiveBadge.textContent = `${resGradasi} (${effKoef}%)`;
+                        }
+
+                        const gateAlertContainer = document.getElementById(`gateAlertContainer-${dashName}`);
+                        if (gateAlertContainer) {
+                            gateAlertContainer.innerHTML = '';
+                        }
                     }
 
                     // Dynamic scores update across subkomponen, komponen, and grand total
@@ -1336,6 +1827,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Grand Total default
                         const gt = document.getElementById('cardGrandTotal');
                         if (gt) gt.textContent = parseFloat(data.scores.grand_total_pm).toFixed(2);
+
+                        // Perbarui badge Predikat AKIP
+                        updateGrandTotalPredikats(data.scores);
 
                         // Subkomponen scores
                         for (const [sKode, subData] of Object.entries(data.scores.subkomponen)) {
@@ -1481,6 +1975,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         const gt = document.getElementById('cardGrandTotal');
                         if (gt) gt.textContent = parseFloat(data.scores.grand_total_pm).toFixed(2);
 
+                        // Perbarui badge Predikat AKIP
+                        updateGrandTotalPredikats(data.scores);
+
                         // Evaluated counts
                         const evCnt = document.getElementById('progressEvaluated');
                         if (evCnt) {
@@ -1542,21 +2039,30 @@ document.addEventListener('DOMContentLoaded', function () {
                             const needsGrad = (tahap === 'pm') ? subData.pm_needs_gradasi : subData.eval_needs_gradasi;
 
                             // Update Koef badges
-                            const higherClass = (effKoef == 100) ? 'bg-success' : (effKoef == 90 ? 'bg-info text-dark' : 'bg-secondary');
+                            const badgeColorClass = getGradasiBadgeClass(gradLabel);
                             const valActiveKoef = document.getElementById(`valActiveKoef-${safeSub}`);
                             const badgeActiveKoef = document.getElementById(`badgeActiveKoef-${safeSub}`);
                             const subKoefVal = document.getElementById(`subKoefVal-${safeSub}`);
                             const subKoefBadge = document.getElementById(`subKoefBadge-${safeSub}`);
+                            const rumusInfo = document.getElementById(`rumusInfo-${safeSub}`);
+                            const guideActiveBadge = document.getElementById(`guideActiveBadge-${safeSub}`);
 
                             if (valActiveKoef) valActiveKoef.textContent = `${effKoef}%`;
                             if (subKoefVal) subKoefVal.textContent = `${effKoef}%`;
                             if (badgeActiveKoef) {
-                                badgeActiveKoef.className = `badge ${higherClass} text-xs rounded-pill px-3 py-1 shadow-sm`;
+                                badgeActiveKoef.className = `badge ${badgeColorClass} text-xs rounded-pill px-3 py-1 shadow-sm`;
                                 badgeActiveKoef.innerHTML = `Koefisien Aktif: <strong id="valActiveKoef-${safeSub}">${effKoef}%</strong> (${gradLabel})`;
                             }
                             if (subKoefBadge) {
-                                subKoefBadge.className = `badge ${higherClass} text-xs`;
+                                subKoefBadge.className = `badge ${badgeColorClass} text-xs`;
                                 subKoefBadge.innerHTML = `Koef: <strong id="subKoefVal-${safeSub}">${effKoef}%</strong> (${gradLabel})`;
+                            }
+                            if (rumusInfo) {
+                                rumusInfo.textContent = `(Rumus: Koefisien Kluster ${effKoef}% × Bobot ${parseFloat(subData.bobot).toFixed(1)})`;
+                            }
+                            if (guideActiveBadge) {
+                                guideActiveBadge.className = `badge ${badgeColorClass}`;
+                                guideActiveBadge.textContent = `${gradLabel} (${effKoef}%)`;
                             }
 
                             // Update Gate UI (locked / unlocked state)
@@ -1565,12 +2071,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             const gateAlertContainer = document.getElementById(`gateAlertContainer-${safeSub}`);
                             const gradFields = document.getElementById(`gradasiFields-${safeSub}`);
                             const saveKoefBtn = document.getElementById(`btnSaveKoef-${safeSub}`);
+                            const pemenuhanPct = (tahap === 'pm') ? (subData.pemenuhan_pm_persen ?? 0) : (subData.pemenuhan_eval_persen ?? 0);
 
                             if (!isComplete) {
-                                // Locked State
+                                // Locked State (Automatic Cluster Mode)
                                 if (statusGate) {
-                                    statusGate.className = 'badge bg-secondary-subtle text-muted';
-                                    statusGate.innerHTML = `<i class="bi bi-lock-fill me-1"></i> <span id="statusGateText-${safeSub}">Terkunci (${terpCount}/${totCount} Terpenuhi)</span>`;
+                                    statusGate.className = 'badge bg-primary-subtle text-primary border border-primary-subtle';
+                                    statusGate.innerHTML = `<i class="bi bi-diagram-3-fill me-1"></i> <span id="statusGateText-${safeSub}">Kluster ${gradLabel} (${effKoef}%) • ${terpCount}/${totCount} Terpenuhi</span>`;
                                 }
                                 if (gradFields) gradFields.classList.add('opacity-50', 'pe-none');
                                 if (saveKoefBtn) saveKoefBtn.disabled = true;
@@ -1583,14 +2090,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 if (gateAlertContainer) {
                                     gateAlertContainer.innerHTML = `
-                                        <div class="alert alert-secondary py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-light" id="gateAlert-${safeSub}">
-                                            <i class="bi bi-shield-lock-fill text-secondary fs-6"></i>
-                                            <div><strong>Form Gradasi Terkunci (Koefisien Default 80%):</strong> Sub komponen belum memenuhi seluruh kriteria (baru <strong>${terpCount}</strong> dari <strong>${totCount}</strong> kriteria terpenuhi). Form gradasi baru dapat diisi jika seluruh kriteria 100% Terpenuhi.</div>
+                                        <div class="alert alert-info py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-info-subtle text-info-emphasis" id="gateAlert-${safeSub}">
+                                            <i class="bi bi-diagram-3-fill fs-6 text-primary"></i>
+                                            <div><strong>Kluster Otomatis:</strong> Pemenuhan <strong>${terpCount}</strong> dari <strong>${totCount}</strong> kriteria (<strong>${pemenuhanPct}%</strong>) masuk ke <strong class="badge ${badgeColorClass} px-2 py-1 ms-1">Gradasi ${gradLabel} (${effKoef}%)</strong>. Form pengajuan Gradasi Lanjutan (A / AA) terbuka jika seluruh kriteria 100% Terpenuhi.</div>
                                         </div>
                                     `;
                                 }
                             } else {
-                                // Unlocked State
+                                // Unlocked State (100% Fulfilled)
                                 if (statusGate) {
                                     statusGate.className = 'badge bg-success-subtle text-success';
                                     statusGate.innerHTML = `<i class="bi bi-unlock-fill me-1"></i> <span id="statusGateText-${safeSub}">Gerbang Terbuka (100% Terpenuhi)</span>`;
@@ -1612,7 +2119,115 @@ document.addEventListener('DOMContentLoaded', function () {
                                             </div>
                                         `;
                                     } else {
-                                        gateAlertContainer.innerHTML = '';
+                                        gateAlertContainer.innerHTML = `
+                                            <div class="alert alert-success py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-success-subtle text-success" id="gateAlert-${safeSub}">
+                                                <i class="bi bi-check-circle-fill fs-6"></i>
+                                                <div><strong>Kriteria 100% Terpenuhi!</strong> Gradasi aktif saat ini: <strong class="badge ${badgeColorClass} px-2 py-1 ms-1">Gradasi ${gradLabel} (${effKoef}%)</strong>.</div>
+                                            </div>
+                                        `;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Update Gate UI & Progress untuk pasangan Subkomponen X.B & X.C
+                        if (data.scores.pairs) {
+                            for (const [pfx, pairData] of Object.entries(data.scores.pairs)) {
+                                const pairDash = `${pfx}-BC`;
+                                const pairSafe = `${pfx}_BC`;
+                                const isComplete = (tahap === 'pm') ? pairData.is_pair_complete_pm : pairData.is_pair_complete_eval;
+                                const bTerp = (tahap === 'pm') ? pairData.b_terpenuhi_pm : pairData.b_terpenuhi_eval;
+                                const cTerp = (tahap === 'pm') ? pairData.c_terpenuhi_pm : pairData.c_terpenuhi_eval;
+                                const bTot = pairData.b_total;
+                                const cTot = pairData.c_total;
+
+                                const statusB = document.getElementById(`pairStatusB-${pairDash}`);
+                                if (statusB) {
+                                    const bPct = bTot > 0 ? ((bTerp / bTot) * 100).toFixed(1) : 0;
+                                    statusB.textContent = `${pfx}.B: ${bTerp}/${bTot} Terpenuhi (${bPct}%)`;
+                                    statusB.className = `badge ${bTerp === bTot && bTot > 0 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'} text-xs`;
+                                }
+                                const statusC = document.getElementById(`pairStatusC-${pairDash}`);
+                                if (statusC) {
+                                    const cPct = cTot > 0 ? ((cTerp / cTot) * 100).toFixed(1) : 0;
+                                    statusC.textContent = `${pfx}.C: ${cTerp}/${cTot} Terpenuhi (${cPct}%)`;
+                                    statusC.className = `badge ${cTerp === cTot && cTot > 0 ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'} text-xs`;
+                                }
+
+                                const statusGate = document.getElementById(`statusGatePair-${pairDash}`);
+                                const gradFields = document.getElementById(`gradasiFieldsPair-${pairDash}`);
+                                const saveBtn = document.getElementById(`btnSaveKoefPair-${pairDash}`);
+                                const alertContainer = document.getElementById(`gateAlertContainerPair-${pairDash}`);
+
+                                const subCData = data.scores.subkomponen[`${pfx}.C`] || {};
+                                const gradLabel = (tahap === 'pm') ? (subCData.gradasi_pm || 'BB') : (subCData.gradasi_eval || 'BB');
+                                const effKoef = (tahap === 'pm') ? (subCData.koefisien_pm || 80) : (subCData.koefisien_evaluasi || 80);
+                                const badgeColor = getGradasiBadgeClass(gradLabel);
+
+                                const badgeActiveKoefPair = document.getElementById(`badgeActiveKoefPair-${pairDash}`);
+                                const valActiveKoefPair = document.getElementById(`valActiveKoefPair-${pairDash}`);
+                                if (valActiveKoefPair) valActiveKoefPair.textContent = effKoef + '%';
+                                if (badgeActiveKoefPair) {
+                                    badgeActiveKoefPair.className = `badge ${badgeColor} text-xs rounded-pill px-3 py-1 shadow-sm`;
+                                    badgeActiveKoefPair.innerHTML = `Koefisien Aktif: <strong id="valActiveKoefPair-${pairDash}">${effKoef}%</strong> (${gradLabel})`;
+                                }
+
+                                const rumusInfoPair = document.getElementById(`rumusInfoPair-${pairDash}`);
+                                if (rumusInfoPair) {
+                                    const subBData = data.scores.subkomponen[`${pfx}.B`] || {};
+                                    rumusInfoPair.textContent = `Rumus: Koefisien Kluster ${effKoef}% × Bobot (${pfx}.B: ${parseFloat(subBData.bobot || 0).toFixed(1)} & ${pfx}.C: ${parseFloat(subCData.bobot || 0).toFixed(1)})`;
+                                }
+
+                                if (!isComplete) {
+                                    if (statusGate) {
+                                        statusGate.className = 'badge bg-warning-subtle text-dark border border-warning-subtle text-xs';
+                                        statusGate.innerHTML = `<i class="bi bi-lock-fill me-1 text-danger"></i> Gerbang Terkunci (Perlu 100% pada ${pfx}.B & ${pfx}.C)`;
+                                    }
+                                    if (gradFields) gradFields.classList.add('opacity-50', 'pe-none');
+                                    if (saveBtn) saveBtn.disabled = true;
+
+                                    document.querySelectorAll(`input[name="gradasi_${tahap}_${pairSafe}"]`).forEach(r => {
+                                        r.disabled = true;
+                                        if (r.value === 'BB') r.checked = true;
+                                    });
+
+                                    if (alertContainer) {
+                                        alertContainer.innerHTML = `
+                                            <div class="alert alert-info py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-info-subtle text-info-emphasis">
+                                                <i class="bi bi-diagram-3-fill fs-6 text-primary"></i>
+                                                <div><strong>Status Pemenuhan:</strong> Subkomponen <strong>${pfx}.B</strong> (<strong>${bTerp}/${bTot}</strong>) dan <strong>${pfx}.C</strong> (<strong>${cTerp}/${cTot}</strong>). Form pengajuan Gradasi Lanjutan (A / AA) terbuka jika <strong>KEDUA</strong> subkomponen 100% Terpenuhi.</div>
+                                            </div>
+                                        `;
+                                    }
+                                } else {
+                                    if (statusGate) {
+                                        statusGate.className = 'badge bg-success-subtle text-success text-xs';
+                                        statusGate.innerHTML = `<i class="bi bi-unlock-fill me-1"></i> Gerbang Terbuka (100% Terpenuhi)`;
+                                    }
+                                    if (gradFields) gradFields.classList.remove('opacity-50', 'pe-none');
+                                    if (saveBtn) saveBtn.disabled = false;
+
+                                    document.querySelectorAll(`input[name="gradasi_${tahap}_${pairSafe}"]`).forEach(r => {
+                                        r.disabled = false;
+                                    });
+
+                                    const needsGrad = (tahap === 'pm') ? subCData.pm_needs_gradasi : subCData.eval_needs_gradasi;
+                                    if (alertContainer) {
+                                        if (needsGrad) {
+                                            alertContainer.innerHTML = `
+                                                <div class="alert alert-warning py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0">
+                                                    <i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i>
+                                                    <div><strong>Kriteria 100% Terpenuhi!</strong> Harap pilih opsi Gradasi Nilai (BB, A, atau AA) untuk pasangan Subkomponen ${pfx}.B & ${pfx}.C.</div>
+                                                </div>
+                                            `;
+                                        } else {
+                                            alertContainer.innerHTML = `
+                                                <div class="alert alert-success py-2 px-3 text-xs mb-2 d-flex align-items-center gap-2 border-0 bg-success-subtle text-success">
+                                                    <i class="bi bi-check-circle-fill fs-6"></i>
+                                                    <div><strong>Kriteria 100% Terpenuhi!</strong> Gradasi aktif saat ini: <strong class="badge ${badgeColor} px-2 py-1 ms-1">Gradasi ${gradLabel} (${effKoef}%)</strong>.</div>
+                                                </div>
+                                            `;
+                                        }
                                     }
                                 }
                             }

@@ -280,6 +280,15 @@
                                                                     <span class="text-muted text-xs fst-italic">Tidak memerlukan bukti dukung khusus.</span>
                                                                 @endif
                                                             </div>
+
+                                                            @if(!empty($cr->langkah_kerja))
+                                                                <div class="mt-2 p-2.5 bg-light-subtle rounded-3 border border-secondary-subtle">
+                                                                    <div class="text-xs fw-bold text-secondary mb-1 d-flex align-items-center">
+                                                                        <i class="bi bi-list-task text-primary me-1"></i> Langkah Kerja:
+                                                                    </div>
+                                                                    <div class="text-xs text-dark" style="white-space: pre-line; line-height: 1.5;">{!! nl2br(e($cr->langkah_kerja)) !!}</div>
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     </div>
 

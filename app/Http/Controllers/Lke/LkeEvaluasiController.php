@@ -505,33 +505,49 @@ class LkeEvaluasiController extends Controller
         $autoResetKoef = false;
         if ($subkomponenId) {
             $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-            $allSubKriteria = LkeKriteria::where('tahun', $targetTahun)->where('subkomponen_id', $subkomponenId)->get();
-            $totalSubCrit = $allSubKriteria->count();
 
+            // Periksa apakah subkomponen ini bagian dari pasangan B & C
+            $isSubB = str_ends_with($subkomponenId, '.B');
+            $isSubC = str_ends_with($subkomponenId, '.C');
+            $subCodesToCheck = [$subkomponenId];
+            if ($isSubB || $isSubC) {
+                $prefix = substr($subkomponenId, 0, strrpos($subkomponenId, '.'));
+                $subCodesToCheck = ["{$prefix}.B", "{$prefix}.C"];
+            }
+
+            $allSubKriteria = LkeKriteria::where('tahun', $targetTahun)->whereIn('subkomponen_id', $subCodesToCheck)->get();
             $subEvals = LkePenilaianSatker::where('id_satker', $idSatker)
                 ->where('tahun', $tahun)
                 ->whereIn('kriteria_id', $allSubKriteria->pluck('kode'))
                 ->get();
 
-            $subTerpenuhi = 0;
-            foreach ($allSubKriteria as $cr) {
-                $evRow = $subEvals->firstWhere('kriteria_id', $cr->kode);
-                if ($evRow) {
-                    if ($tahap === 'pm' && ($evRow->pm_nilai === 'Terpenuhi' || (float)$evRow->pm_skor > 0)) {
-                        $subTerpenuhi++;
-                    } elseif ($tahap !== 'pm' && ($evRow->nilai === 'Terpenuhi' || (float)$evRow->skor > 0)) {
-                        $subTerpenuhi++;
+            $isAnySubIncomplete = false;
+            foreach ($subCodesToCheck as $chkCode) {
+                $chkKriteria = $allSubKriteria->where('subkomponen_id', $chkCode);
+                $totCrit = $chkKriteria->count();
+                $terpenuhi = 0;
+                foreach ($chkKriteria as $cr) {
+                    $evRow = $subEvals->firstWhere('kriteria_id', $cr->kode);
+                    if ($evRow) {
+                        if ($tahap === 'pm' && ($evRow->pm_nilai === 'Terpenuhi' || (float)$evRow->pm_skor > 0)) {
+                            $terpenuhi++;
+                        } elseif ($tahap !== 'pm' && ($evRow->nilai === 'Terpenuhi' || (float)$evRow->skor > 0)) {
+                            $terpenuhi++;
+                        }
                     }
+                }
+                if ($totCrit > 0 && $terpenuhi < $totCrit) {
+                    $isAnySubIncomplete = true;
                 }
             }
 
-            if ($totalSubCrit > 0 && $subTerpenuhi < $totalSubCrit) {
-                $koefRec = LkeSubkomponenKoefisien::where('id_satker', $idSatker)
+            if ($isAnySubIncomplete) {
+                $koefRecs = LkeSubkomponenKoefisien::where('id_satker', $idSatker)
                     ->where('tahun', $tahun)
-                    ->where('subkomponen_kode', $subkomponenId)
-                    ->first();
+                    ->whereIn('subkomponen_kode', $subCodesToCheck)
+                    ->get();
 
-                if ($koefRec) {
+                foreach ($koefRecs as $koefRec) {
                     if ($tahap === 'pm' && ($koefRec->pm_koefisien > 80 || in_array($koefRec->pm_nilai, ['A', 'AA', 'Terpenuhi', '90', '100']))) {
                         $koefRec->pm_target_koefisien = 80;
                         $koefRec->pm_koefisien = 80;
@@ -554,9 +570,13 @@ class LkeEvaluasiController extends Controller
 
         $tahapLabel = ($tahap === 'pm') ? 'Penilaian Mandiri (PM)' : 'Hasil Evaluasi';
 
+        $subScoreInfo = $scores['subkomponen'][$subkomponenId] ?? null;
+        $currentKlusterGradasi = ($tahap === 'pm') ? ($subScoreInfo['gradasi_pm'] ?? 'BB') : ($subScoreInfo['gradasi_eval'] ?? 'BB');
+        $currentKlusterKoef = ($tahap === 'pm') ? ($subScoreInfo['koefisien_pm'] ?? 80) : ($subScoreInfo['koefisien_evaluasi'] ?? 80);
+
         return response()->json([
             'success'          => true,
-            'message'          => "Nilai {$tahapLabel} untuk Kriteria {$kriteriaId} berhasil disimpan!" . ($autoResetKoef ? " Gradasi subkomponen {$subkomponenId} otomatis di-reset ke default 80% karena kriteria belum 100%." : ""),
+            'message'          => "Nilai {$tahapLabel} untuk Kriteria {$kriteriaId} berhasil disimpan!" . ($autoResetKoef ? " Gradasi subkomponen {$subkomponenId} otomatis disesuaikan ke Kluster Gradasi {$currentKlusterGradasi} ({$currentKlusterKoef}%)." : ""),
             'penilaian'        => $penilaian,
             'scores'           => $scores,
             'tahap'            => $tahap,
@@ -567,7 +587,9 @@ class LkeEvaluasiController extends Controller
 
     /**
      * AJAX endpoint to save / update subkomponen gradasi (BB 80%, A 90%, AA 100%).
-     * STRICT GATE: Only allowed if all criteria in this subkomponen are 100% fulfilled.
+     * STRICT GATE: 
+     * - Untuk Subkomponen X.A: wajib seluruh kriteria X.A 100% terpenuhi.
+     * - Untuk Subkomponen X.B & X.C (berpasangan): KEDUA subkomponen (X.B DAN X.C) WAJIB 100% terpenuhi.
      */
     public function saveSubkomponenKoefisien(Request $request)
     {
@@ -588,7 +610,7 @@ class LkeEvaluasiController extends Controller
 
         $idSatker = $request->id_satker;
         $tahun = (int)$request->tahun;
-        $subkomponenKode = $request->subkomponen_kode;
+        $subkomponenKode = trim($request->subkomponen_kode);
         $uraian = trim($request->uraian ?? '');
         $tahap = $request->get('tahap', 'evaluasi');
         if ($tahap === 'pk') {
@@ -625,32 +647,63 @@ class LkeEvaluasiController extends Controller
             ], 403);
         }
 
-        // GERBANG 100% MUTLAK: Seluruh kriteria subkomponen WAJIB 100% Terpenuhi
-        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-        $kriteriaSub = LkeKriteria::where('tahun', $targetTahun)->where('subkomponen_id', $subkomponenKode)->get();
-        $totalKriteriaSub = $kriteriaSub->count();
+        // Deteksi apakah subkomponen yang disimpan adalah pasangan B & C
+        $targetCodes = [$subkomponenKode];
+        $isPair = false;
+        $compPrefix = null;
 
-        $evalsSub = LkePenilaianSatker::where('id_satker', $idSatker)
-            ->where('tahun', $tahun)
-            ->whereIn('kriteria_id', $kriteriaSub->pluck('kode'))
-            ->get();
-
-        $terpenuhiSubCount = 0;
-        foreach ($kriteriaSub as $cr) {
-            $ev = $evalsSub->firstWhere('kriteria_id', $cr->kode);
-            if ($ev) {
-                if ($tahap === 'pm' && ($ev->pm_nilai === 'Terpenuhi' || (float)$ev->pm_skor > 0)) {
-                    $terpenuhiSubCount++;
-                } elseif ($tahap !== 'pm' && ($ev->nilai === 'Terpenuhi' || (float)$ev->skor > 0)) {
-                    $terpenuhiSubCount++;
-                }
+        if (
+            str_contains($subkomponenKode, 'BC') || 
+            str_contains($subkomponenKode, ',') || 
+            str_contains($subkomponenKode, '_') || 
+            str_ends_with($subkomponenKode, '.B') || 
+            str_ends_with($subkomponenKode, '.C')
+        ) {
+            if (preg_match('/^([0-9]+)/', $subkomponenKode, $m)) {
+                $compPrefix = $m[1];
+                $targetCodes = ["{$compPrefix}.B", "{$compPrefix}.C"];
+                $isPair = true;
             }
         }
 
-        if ($totalKriteriaSub === 0 || $terpenuhiSubCount < $totalKriteriaSub) {
+        // GERBANG 100% MUTLAK:
+        // Jika berpasangan (X.B & X.C), KEDUA subkomponen harus 100% terpenuhi
+        // Jika mandiri (misal X.A), subkomponen tersebut harus 100% terpenuhi
+        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
+        $kriteriaCheck = LkeKriteria::where('tahun', $targetTahun)->whereIn('subkomponen_id', $targetCodes)->get();
+        $evalsCheck = LkePenilaianSatker::where('id_satker', $idSatker)
+            ->where('tahun', $tahun)
+            ->whereIn('kriteria_id', $kriteriaCheck->pluck('kode'))
+            ->get();
+
+        $incompleteMessages = [];
+        foreach ($targetCodes as $sCode) {
+            $subCrits = $kriteriaCheck->where('subkomponen_id', $sCode);
+            $totalCnt = $subCrits->count();
+            $terpCnt = 0;
+            foreach ($subCrits as $cr) {
+                $ev = $evalsCheck->firstWhere('kriteria_id', $cr->kode);
+                if ($ev) {
+                    if ($tahap === 'pm' && ($ev->pm_nilai === 'Terpenuhi' || (float)$ev->pm_skor > 0)) {
+                        $terpCnt++;
+                    } elseif ($tahap !== 'pm' && ($ev->nilai === 'Terpenuhi' || (float)$ev->skor > 0)) {
+                        $terpCnt++;
+                    }
+                }
+            }
+            if ($totalCnt === 0 || $terpCnt < $totalCnt) {
+                $incompleteMessages[] = "Subkomponen {$sCode} baru {$terpCnt}/{$totalCnt} terpenuhi";
+            }
+        }
+
+        if (!empty($incompleteMessages)) {
+            $detailMsg = implode(', ', $incompleteMessages);
+            $ruleMsg = $isPair 
+                ? "Pilihan gradasi lanjutan terkunci: {$detailMsg}. Seluruh kriteria pada Subkomponen {$compPrefix}.B dan {$compPrefix}.C wajib 100% terpenuhi."
+                : "Subkomponen {$subkomponenKode} belum memenuhi seluruh kriteria ({$detailMsg}). Pilihan gradasi terkunci sampai 100% kriteria terpenuhi.";
             return response()->json([
                 'success' => false,
-                'message' => "Subkomponen {$subkomponenKode} belum memenuhi seluruh kriteria (baru {$terpenuhiSubCount} dari {$totalKriteriaSub} terpenuhi). Pilihan gradasi terkunci sampai 100% kriteria terpenuhi.",
+                'message' => $ruleMsg,
             ], 422);
         }
 
@@ -673,7 +726,8 @@ class LkeEvaluasiController extends Controller
         if ($hasFile) {
             $file = $request->file('bukti_file');
             $originalFileName = $file->getClientOriginalName();
-            $cleanName = time() . '_' . str_replace('.', '_', $subkomponenKode) . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalFileName);
+            $cleanCodeName = $isPair ? "{$compPrefix}_BC" : str_replace('.', '_', $subkomponenKode);
+            $cleanName = time() . '_' . $cleanCodeName . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalFileName);
             $destinationDir = public_path('uploads/lke_koefisien');
             if (!file_exists($destinationDir)) {
                 mkdir($destinationDir, 0777, true);
@@ -682,53 +736,62 @@ class LkeEvaluasiController extends Controller
             $savedFilePath = 'uploads/lke_koefisien/' . $cleanName;
         }
 
-        $koefRecord = LkeSubkomponenKoefisien::firstOrNew([
-            'id_satker'        => $idSatker,
-            'tahun'            => $tahun,
-            'subkomponen_kode' => $subkomponenKode,
-        ]);
+        // Simpan serentak ke semua subkomponen target (untuk pasangan B & C, keduanya diupdate)
+        $savedRecords = [];
+        foreach ($targetCodes as $sCode) {
+            $koefRecord = LkeSubkomponenKoefisien::firstOrNew([
+                'id_satker'        => $idSatker,
+                'tahun'            => $tahun,
+                'subkomponen_kode' => $sCode,
+            ]);
 
-        if ($tahap === 'pm') {
-            $koefRecord->pm_target_koefisien = $targetKoefisien;
-            $koefRecord->pm_uraian = $uraian;
-            if ($savedFilePath) {
-                $koefRecord->pm_link_bukti_dukung = $savedFilePath;
-                $koefRecord->pm_bukti_dukung = $originalFileName;
-            } elseif ($hasTextBukti) {
-                $koefRecord->pm_bukti_dukung = $request->bukti_dukung;
+            if ($tahap === 'pm') {
+                $koefRecord->pm_target_koefisien = $targetKoefisien;
+                $koefRecord->pm_uraian = $uraian;
+                if ($savedFilePath) {
+                    $koefRecord->pm_link_bukti_dukung = $savedFilePath;
+                    $koefRecord->pm_bukti_dukung = $originalFileName;
+                } elseif ($hasTextBukti) {
+                    $koefRecord->pm_bukti_dukung = $request->bukti_dukung;
+                }
+                $koefRecord->pm_nilai = $gradasi;
+                $koefRecord->pm_koefisien = $targetKoefisien;
+                $koefRecord->pm_evaluator_id = session('id_satker') ?? 'satker';
+            } else {
+                $koefRecord->target_koefisien = $targetKoefisien;
+                $koefRecord->uraian = $uraian;
+                if ($savedFilePath) {
+                    $koefRecord->link_bukti_dukung = $savedFilePath;
+                    $koefRecord->bukti_dukung = $originalFileName;
+                } elseif ($hasTextBukti) {
+                    $koefRecord->bukti_dukung = $request->bukti_dukung;
+                }
+                $koefRecord->nilai = $gradasi;
+                $koefRecord->koefisien = $targetKoefisien;
+                $koefRecord->evaluator_id = session('id_satker') ?? 'evaluator';
             }
-            $koefRecord->pm_nilai = $gradasi;
-            $koefRecord->pm_koefisien = $targetKoefisien;
-            $koefRecord->pm_evaluator_id = session('id_satker') ?? 'satker';
-        } else {
-            $koefRecord->target_koefisien = $targetKoefisien;
-            $koefRecord->uraian = $uraian;
-            if ($savedFilePath) {
-                $koefRecord->link_bukti_dukung = $savedFilePath;
-                $koefRecord->bukti_dukung = $originalFileName;
-            } elseif ($hasTextBukti) {
-                $koefRecord->bukti_dukung = $request->bukti_dukung;
-            }
-            $koefRecord->nilai = $gradasi;
-            $koefRecord->koefisien = $targetKoefisien;
-            $koefRecord->evaluator_id = session('id_satker') ?? 'evaluator';
+
+            $koefRecord->save();
+            $savedRecords[$sCode] = $koefRecord;
         }
-
-        $koefRecord->save();
 
         // Recalculate scores hierarchically with the new coefficient
         $scores = $this->calculateHierarchyScores($idSatker, $tahun, $tahap);
 
         $tahapLabel = ($tahap === 'pm') ? 'Penilaian Mandiri (PM)' : 'Evaluasi';
         $statusMsg = "berhasil disimpan sebagai Gradasi {$gradasi} (Koefisien {$targetKoefisien}%)";
+        $displayKode = $isPair ? "{$compPrefix}.B & {$compPrefix}.C" : $subkomponenKode;
 
         return response()->json([
             'success'             => true,
-            'message'             => "Pengaturan Gradasi Subkomponen {$subkomponenKode} ({$tahapLabel}) {$statusMsg}!",
-            'koefisien'           => $koefRecord,
+            'message'             => "Pengaturan Gradasi Subkomponen {$displayKode} ({$tahapLabel}) {$statusMsg}!",
+            'koefisien'           => $savedRecords[reset($targetCodes)],
             'gradasi'             => $gradasi,
             'effective_koefisien' => $targetKoefisien,
             'subkomponen_kode'    => $subkomponenKode,
+            'is_pair'             => $isPair,
+            'pair_prefix'         => $compPrefix,
+            'target_codes'        => $targetCodes,
             'scores'              => $scores,
             'tahap'               => $tahap,
         ]);
@@ -736,20 +799,31 @@ class LkeEvaluasiController extends Controller
 
     /**
      * Calculate bottom-up hierarchical scores for both Evaluasi and PM:
-     * Subkomponen calculation:
-     * a. Jumlah kriteria terpenuhi dibagi jumlah seluruh kriteria di subkomponen
-     * b. Hasil a dikali koefisien defaultnya 80 (atau berubah menjadi 90/100 jika kriteria 100% dan section gradasi disetujui)
-     * c. Hasil a dikali koefisien baru dikali bobot nilai di setiap subkomponen
+     * Subkomponen calculation dengan Klusterisasi Koefisien:
+     * a. Hitung kriteria terpenuhi dibagi jumlah seluruh kriteria di subkomponen: P = (terpenuhi / total) * 100%
+     * b. Klusterisasi P untuk menemukan koefisien dan gradasi yang tepat:
+     *    - 0%           => E  (Koefisien 0%)
+     *    - > 0% - 25%   => D  (Koefisien 30%)
+     *    - > 25% - 50%  => C  (Koefisien 50%)
+     *    - > 50% - 75%  => CC (Koefisien 60%)
+     *    - > 75% - <100%=> B  (Koefisien 70%)
+     *    - 100%         => BB (Koefisien 80% / Pilihan A 90% atau AA 100%)
+     * c. Koefisien hasil klusterisasi dikali bobot nilai subkomponen: (Koefisien / 100) * Bobot
      * d. Hasil perhitungan c dijumlahkan untuk seluruh 12 subkomponen di LKE
      */
     public function calculateHierarchyScores($idSatker, $tahun, $preferredStage = null)
     {
         if (!$idSatker) {
+            $defaultPredikat = LkeSubkomponenKoefisien::getPredikatAkip(0);
             return [
                 'grand_total'           => 0,
                 'grand_total_evaluasi'  => 0,
                 'grand_total_pk'        => 0,
                 'grand_total_pm'        => 0,
+                'predikat_evaluasi'     => $defaultPredikat,
+                'predikat_pk'           => $defaultPredikat,
+                'predikat_pm'           => $defaultPredikat,
+                'predikat_aktif'        => $defaultPredikat,
                 'komponen'              => [],
                 'subkomponen'           => [],
                 'evaluated_cnt'         => 0,
@@ -796,100 +870,224 @@ class LkeEvaluasiController extends Controller
             '4.A' => 5.00, '4.B' => 7.50, '4.C' => 12.50,
         ];
 
+        // Pass 1: Kumpulkan statistik kriteria terpenuhi dan kelengkapan dasar untuk setiap subkomponen
+        $subStats = [];
         foreach ($subkomponenList as $sub) {
             $crits = $kriteriaBySub->get($sub->kode, collect());
-            $subBobot = (float)($sub->bobot ?: ($defaultBobotMap[$sub->kode] ?? 0));
-            $totalKriteriaCount = $crits->count();
-
-            // Hitung kriteria terpenuhi dan kriteria yang sudah dievaluasi
-            $terpenuhiEvalCount = 0;
-            $terpenuhiPmCount = 0;
-            $subPkEvaluated = 0;
-            $subPmEvaluated = 0;
+            $totCnt = $crits->count();
+            $terpEval = 0;
+            $terpPm = 0;
+            $subPkEval = 0;
+            $subPmEval = 0;
 
             foreach ($crits as $cr) {
                 if (isset($evalMap[$cr->kode])) {
                     $ev = $evalMap[$cr->kode];
                     if (!is_null($ev->parameter_id)) {
-                        $subPkEvaluated++;
+                        $subPkEval++;
                         if ($ev->nilai === 'Terpenuhi' || (float)$ev->skor > 0) {
-                            $terpenuhiEvalCount++;
+                            $terpEval++;
                         }
                     }
                     if (!is_null($ev->pm_parameter_id)) {
-                        $subPmEvaluated++;
+                        $subPmEval++;
                         if ($ev->pm_nilai === 'Terpenuhi' || (float)$ev->pm_skor > 0) {
-                            $terpenuhiPmCount++;
+                            $terpPm++;
                         }
                     }
                 }
             }
 
+            $is100Eval = ($totCnt > 0 && $terpEval === $totCnt);
+            $is100Pm   = ($totCnt > 0 && $terpPm === $totCnt);
+
+            $subStats[$sub->kode] = [
+                'total_cnt'        => $totCnt,
+                'terpenuhi_eval'   => $terpEval,
+                'terpenuhi_pm'     => $terpPm,
+                'evaluated_eval'   => $subPkEval,
+                'evaluated_pm'     => $subPmEval,
+                'is_100_eval'      => $is100Eval,
+                'is_100_pm'        => $is100Pm,
+            ];
+        }
+
+        // Hitung kelengkapan pasangan B & C untuk setiap komponen (1, 2, 3, 4)
+        $pairGateStatus = [];
+        $compIds = $subkomponenList->pluck('kode')->map(function($k) {
+            return explode('.', $k)[0];
+        })->unique();
+
+        foreach ($compIds as $pfx) {
+            $bStats = $subStats["{$pfx}.B"] ?? null;
+            $cStats = $subStats["{$pfx}.C"] ?? null;
+
+            $pairGateStatus[$pfx] = [
+                'prefix'                => $pfx,
+                'is_pair_complete_eval' => ($bStats && $cStats && $bStats['is_100_eval'] && $cStats['is_100_eval']),
+                'is_pair_complete_pm'   => ($bStats && $cStats && $bStats['is_100_pm'] && $cStats['is_100_pm']),
+                'b_terpenuhi_eval'      => $bStats['terpenuhi_eval'] ?? 0,
+                'b_total'               => $bStats['total_cnt'] ?? 0,
+                'c_terpenuhi_eval'      => $cStats['terpenuhi_eval'] ?? 0,
+                'c_total'               => $cStats['total_cnt'] ?? 0,
+                'b_terpenuhi_pm'        => $bStats['terpenuhi_pm'] ?? 0,
+                'c_terpenuhi_pm'        => $cStats['terpenuhi_pm'] ?? 0,
+            ];
+        }
+
+        foreach ($subkomponenList as $sub) {
+            $crits = $kriteriaBySub->get($sub->kode, collect());
+            $subBobot = (float)($sub->bobot ?: ($defaultBobotMap[$sub->kode] ?? 0));
+            $stats = $subStats[$sub->kode] ?? [
+                'total_cnt' => 0, 'terpenuhi_eval' => 0, 'terpenuhi_pm' => 0,
+                'evaluated_eval' => 0, 'evaluated_pm' => 0, 'is_100_eval' => false, 'is_100_pm' => false
+            ];
+
+            $totalKriteriaCount = $stats['total_cnt'];
+            $terpenuhiEvalCount = $stats['terpenuhi_eval'];
+            $terpenuhiPmCount   = $stats['terpenuhi_pm'];
+            $subPkEvaluated     = $stats['evaluated_eval'];
+            $subPmEvaluated     = $stats['evaluated_pm'];
+
             $totalPkEvaluated += $subPkEvaluated;
             $totalPmEvaluated += $subPmEvaluated;
 
-            // Strict Gate 100%: koefisien > 80 HANYA diizinkan jika seluruh kriteria telah terpenuhi
-            $isCompleteEval = ($totalKriteriaCount > 0 && $terpenuhiEvalCount === $totalKriteriaCount);
-            $isCompletePm   = ($totalKriteriaCount > 0 && $terpenuhiPmCount === $totalKriteriaCount);
+            // Klusterisasi pemenuhan kriteria masing-masing:
+            $clusterEval = LkeSubkomponenKoefisien::clusterPemenuhan($terpenuhiEvalCount, $totalKriteriaCount);
+            $clusterPm   = LkeSubkomponenKoefisien::clusterPemenuhan($terpenuhiPmCount, $totalKriteriaCount);
 
+            $isCompleteEval = $stats['is_100_eval'];
+            $isCompletePm   = $stats['is_100_pm'];
+
+            // Deteksi pasangan B & C
+            $isSubB = str_ends_with($sub->kode, '.B');
+            $isSubC = str_ends_with($sub->kode, '.C');
+            $isPair = ($isSubB || $isSubC);
+            $pfx = explode('.', $sub->kode)[0];
+            $isPairCompleteEval = $isPair ? ($pairGateStatus[$pfx]['is_pair_complete_eval'] ?? false) : $isCompleteEval;
+            $isPairCompletePm   = $isPair ? ($pairGateStatus[$pfx]['is_pair_complete_pm'] ?? false) : $isCompletePm;
+
+            // Ambil record koefisien (jika pasangan, record di C atau B saling berbagi gradasi yang sama)
             $koefRecord = $koefMap->get($sub->kode);
+            $pairKoefRecord = $isPair ? ($koefMap->get("{$pfx}.C") ?: $koefMap->get("{$pfx}.B")) : $koefRecord;
 
-            // Koefisien subkomponen: default 80
-            // Jika 100% terpenuhi, koefisien mengambil nilai gradasi (80, 90, atau 100)
-            if ($isCompleteEval && $koefRecord) {
-                $koefisienEval = (int)$koefRecord->effective_koefisien;
+            // Penentuan koefisien Evaluasi:
+            // Jika berpasangan: koefisien lanjutan (>80) HANYA diizinkan jika KEDUA subkomponen (B & C) 100% terpenuhi
+            if ($isPair) {
+                if ($isPairCompleteEval) {
+                    if ($pairKoefRecord && in_array((int)$pairKoefRecord->effective_koefisien, [80, 90, 100])) {
+                        $koefisienEval = (int)$pairKoefRecord->effective_koefisien;
+                        $gradasiEval   = $pairKoefRecord->gradasi_label;
+                    } else {
+                        $koefisienEval = 80;
+                        $gradasiEval   = 'BB';
+                    }
+                } else {
+                    if ($isCompleteEval) {
+                        $koefisienEval = 80;
+                        $gradasiEval   = 'BB';
+                    } else {
+                        $koefisienEval = (int)$clusterEval['koefisien'];
+                        $gradasiEval   = $clusterEval['gradasi'];
+                    }
+                }
             } else {
-                $koefisienEval = 80;
+                if ($isCompleteEval) {
+                    if ($koefRecord && in_array((int)$koefRecord->effective_koefisien, [80, 90, 100])) {
+                        $koefisienEval = (int)$koefRecord->effective_koefisien;
+                        $gradasiEval   = $koefRecord->gradasi_label;
+                    } else {
+                        $koefisienEval = 80;
+                        $gradasiEval   = 'BB';
+                    }
+                } else {
+                    $koefisienEval = (int)$clusterEval['koefisien'];
+                    $gradasiEval   = $clusterEval['gradasi'];
+                }
             }
 
-            if ($isCompletePm && $koefRecord) {
-                $koefisienPm = (int)$koefRecord->effective_pm_koefisien;
+            // Penentuan koefisien PM:
+            if ($isPair) {
+                if ($isPairCompletePm) {
+                    if ($pairKoefRecord && in_array((int)$pairKoefRecord->effective_pm_koefisien, [80, 90, 100])) {
+                        $koefisienPm = (int)$pairKoefRecord->effective_pm_koefisien;
+                        $gradasiPm   = $pairKoefRecord->pm_gradasi_label;
+                    } else {
+                        $koefisienPm = 80;
+                        $gradasiPm   = 'BB';
+                    }
+                } else {
+                    if ($isCompletePm) {
+                        $koefisienPm = 80;
+                        $gradasiPm   = 'BB';
+                    } else {
+                        $koefisienPm = (int)$clusterPm['koefisien'];
+                        $gradasiPm   = $clusterPm['gradasi'];
+                    }
+                }
             } else {
-                $koefisienPm = 80;
+                if ($isCompletePm) {
+                    if ($koefRecord && in_array((int)$koefRecord->effective_pm_koefisien, [80, 90, 100])) {
+                        $koefisienPm = (int)$koefRecord->effective_pm_koefisien;
+                        $gradasiPm   = $koefRecord->pm_gradasi_label;
+                    } else {
+                        $koefisienPm = 80;
+                        $gradasiPm   = 'BB';
+                    }
+                } else {
+                    $koefisienPm = (int)$clusterPm['koefisien'];
+                    $gradasiPm   = $clusterPm['gradasi'];
+                }
             }
 
-            // a. Jumlah kriteria terpenuhi dibagi jumlah seluruh kriteria di subkomponen
-            $rasioEval = $totalKriteriaCount > 0 ? ($terpenuhiEvalCount / $totalKriteriaCount) : 0;
-            $rasioPm = $totalKriteriaCount > 0 ? ($terpenuhiPmCount / $totalKriteriaCount) : 0;
+            // Langkah hitung nilai subkomponen:
+            // Formula: (Koefisien / 100) * Bobot
+            $subPkScore = round(($koefisienEval / 100) * $subBobot, 2);
+            $subPmScore = round(($koefisienPm / 100) * $subBobot, 2);
 
-            // b & c. Hasil a dikali koefisien (default 80 atau 90/100 jika terpenuhi) baru dikali bobot nilai
-            // Formula: rasio * (koefisien / 100) * bobot
-            $subPkScore = round($rasioEval * ($koefisienEval / 100) * $subBobot, 2);
-            $subPmScore = round($rasioPm * ($koefisienPm / 100) * $subBobot, 2);
-
-            $evalPersen = round($rasioEval * $koefisienEval, 1);
-            $pmPersen = round($rasioPm * $koefisienPm, 1);
+            $evalPersen = (float)$koefisienEval;
+            $pmPersen   = (float)$koefisienPm;
 
             $subkomponenScores[$sub->kode] = [
-                'nama'                  => $sub->nama,
-                'komponen_id'           => $sub->komponen_id,
-                'bobot'                 => $subBobot,
-                'koefisien_evaluasi'    => $koefisienEval,
-                'koefisien_pm'          => $koefisienPm,
-                'skor'                  => $subPkScore,
-                'evaluasi_skor'         => $subPkScore,
-                'pk_skor'               => $subPkScore,
-                'pm_skor'               => $subPmScore,
-                'max_skor'              => $subBobot,
-                'persentase'            => $evalPersen,
-                'evaluasi_persentase'   => $evalPersen,
-                'pk_persentase'         => $evalPersen,
-                'pm_persentase'         => $pmPersen,
-                'terpenuhi_eval_cnt'    => $terpenuhiEvalCount,
-                'terpenuhi_pm_cnt'      => $terpenuhiPmCount,
-                'evaluated_cnt'         => $subPkEvaluated,
-                'evaluasi_evaluated_cnt'=> $subPkEvaluated,
-                'pk_evaluated_cnt'      => $subPkEvaluated,
-                'pm_evaluated_cnt'      => $subPmEvaluated,
-                'total_cnt'             => $totalKriteriaCount,
-                'is_100_eval'           => $isCompleteEval,
-                'is_100_pm'             => $isCompletePm,
-                'gradasi_eval'          => ($isCompleteEval && $koefRecord) ? $koefRecord->gradasi_label : 'BB',
-                'gradasi_pm'            => ($isCompletePm && $koefRecord) ? $koefRecord->pm_gradasi_label : 'BB',
-                'has_explicit_eval'     => $isCompleteEval && $koefRecord && !empty($koefRecord->nilai),
-                'has_explicit_pm'       => $isCompletePm && $koefRecord && !empty($koefRecord->pm_nilai),
-                'eval_needs_gradasi'    => $isCompleteEval && (!$koefRecord || empty($koefRecord->nilai)),
-                'pm_needs_gradasi'      => $isCompletePm && (!$koefRecord || empty($koefRecord->pm_nilai)),
+                'nama'                   => $sub->nama,
+                'komponen_id'            => $sub->komponen_id,
+                'bobot'                  => $subBobot,
+                'koefisien_evaluasi'     => $koefisienEval,
+                'koefisien_pm'           => $koefisienPm,
+                'gradasi_eval'           => $gradasiEval,
+                'gradasi_pm'             => $gradasiPm,
+                'cluster_eval'           => $clusterEval,
+                'cluster_pm'             => $clusterPm,
+                'badge_eval'             => LkeSubkomponenKoefisien::getGradasiBadgeClass($gradasiEval),
+                'badge_pm'               => LkeSubkomponenKoefisien::getGradasiBadgeClass($gradasiPm),
+                'skor'                   => $subPkScore,
+                'evaluasi_skor'          => $subPkScore,
+                'pk_skor'                => $subPkScore,
+                'pm_skor'                => $subPmScore,
+                'max_skor'               => $subBobot,
+                'persentase'             => $evalPersen,
+                'evaluasi_persentase'    => $evalPersen,
+                'pk_persentase'          => $evalPersen,
+                'pm_persentase'          => $pmPersen,
+                'terpenuhi_eval_cnt'     => $terpenuhiEvalCount,
+                'terpenuhi_pm_cnt'       => $terpenuhiPmCount,
+                'pemenuhan_eval_persen'  => $clusterEval['persen'],
+                'pemenuhan_pm_persen'    => $clusterPm['persen'],
+                'evaluated_cnt'          => $subPkEvaluated,
+                'evaluasi_evaluated_cnt' => $subPkEvaluated,
+                'pk_evaluated_cnt'       => $subPkEvaluated,
+                'pm_evaluated_cnt'       => $subPmEvaluated,
+                'total_cnt'              => $totalKriteriaCount,
+                'is_100_eval'            => $isCompleteEval,
+                'is_100_pm'              => $isCompletePm,
+                'is_pair'                => $isPair,
+                'pair_prefix'            => $isPair ? $pfx : null,
+                'is_pair_complete_eval'  => $isPairCompleteEval,
+                'is_pair_complete_pm'    => $isPairCompletePm,
+                'has_explicit_eval'      => $isPair ? ($isPairCompleteEval && $pairKoefRecord && !empty($pairKoefRecord->nilai)) : ($isCompleteEval && $koefRecord && !empty($koefRecord->nilai)),
+                'has_explicit_pm'        => $isPair ? ($isPairCompletePm && $pairKoefRecord && !empty($pairKoefRecord->pm_nilai)) : ($isCompletePm && $koefRecord && !empty($koefRecord->pm_nilai)),
+                'eval_needs_gradasi'     => $isPair ? ($isPairCompleteEval && (!$pairKoefRecord || empty($pairKoefRecord->nilai))) : ($isCompleteEval && (!$koefRecord || empty($koefRecord->nilai))),
+                'pm_needs_gradasi'       => $isPair ? ($isPairCompletePm && (!$pairKoefRecord || empty($pairKoefRecord->pm_nilai))) : ($isCompletePm && (!$koefRecord || empty($koefRecord->pm_nilai))),
             ];
         }
 
@@ -937,14 +1135,24 @@ class LkeEvaluasiController extends Controller
 
         $isPm = ($preferredStage === 'pm');
 
+        $roundedGrandTotalPk = round($grandTotalPk, 2);
+        $roundedGrandTotalPm = round($grandTotalPm, 2);
+        $predikatPk = LkeSubkomponenKoefisien::getPredikatAkip($roundedGrandTotalPk);
+        $predikatPm = LkeSubkomponenKoefisien::getPredikatAkip($roundedGrandTotalPm);
+
         // d. Hasil penghitungan dijumlahkan untuk seluruh subkomponen (total 12 subkomponen)
         return [
-            'grand_total'           => round($isPm ? $grandTotalPm : $grandTotalPk, 2),
-            'grand_total_evaluasi'  => round($grandTotalPk, 2),
-            'grand_total_pk'        => round($grandTotalPk, 2),
-            'grand_total_pm'        => round($grandTotalPm, 2),
+            'grand_total'           => $isPm ? $roundedGrandTotalPm : $roundedGrandTotalPk,
+            'grand_total_evaluasi'  => $roundedGrandTotalPk,
+            'grand_total_pk'        => $roundedGrandTotalPk,
+            'grand_total_pm'        => $roundedGrandTotalPm,
+            'predikat_evaluasi'     => $predikatPk,
+            'predikat_pk'           => $predikatPk,
+            'predikat_pm'           => $predikatPm,
+            'predikat_aktif'        => $isPm ? $predikatPm : $predikatPk,
             'komponen'              => $komponenScores,
             'subkomponen'           => $subkomponenScores,
+            'pairs'                 => $pairGateStatus,
             'evaluated_cnt'         => $isPm ? $totalPmEvaluated : $totalPkEvaluated,
             'evaluasi_evaluated_cnt'=> $totalPkEvaluated,
             'pk_evaluated_cnt'      => $totalPkEvaluated,
