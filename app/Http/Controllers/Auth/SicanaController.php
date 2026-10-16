@@ -52,6 +52,12 @@ class SicanaController extends Controller
                 new \Lcobucci\JWT\Validation\Constraint\SignedWith($signer, $key),
             ];
 
+            // Validasi expiry jika class LooseValidAt dan SystemClock tersedia
+            if (class_exists(\Lcobucci\Clock\SystemClock::class) && class_exists(\Lcobucci\JWT\Validation\Constraint\LooseValidAt::class)) {
+                $clock = new \Lcobucci\Clock\SystemClock(new \DateTimeZone('UTC'));
+                $constraints[] = new \Lcobucci\JWT\Validation\Constraint\LooseValidAt($clock);
+            }
+
             foreach ($constraints as $constraint) {
                 if (!$config->validator()->validate($token, $constraint)) {
                     throw new \Exception('Invalid token constraints');
@@ -74,16 +80,16 @@ class SicanaController extends Controller
             $user = User::where('id_satker', $userData['satuan_kerja'])->first();
 
             if (!$user) {
-                $user = User::create([
-                    'id_satker' => $userData['satuan_kerja'],
-                    'satkerpass' => md5($userData['satuan_kerja']),
-                    'id_kejati' => $userData['id_kejati'],
-                    'id_kejari' => $userData['id_kejari'],
-                    'id_sakip_level' => $userData['id_sakip_level'],
-                    'id_hidesatker' => 1,
-                    'satkernama' => $userData['satker_nama'],
-                ]);
-            }
+    $user = User::create([
+        'id_satker' => $userData['satuan_kerja'],
+        'satkerpass' => md5(\Illuminate\Support\Str::random(32)), // String MD5 acak 32 karakter
+        'id_kejati' => $userData['id_kejati'],
+        'id_kejari' => $userData['id_kejari'],
+        'id_sakip_level' => $userData['id_sakip_level'],
+        'id_hidesatker' => 1,
+        'satkernama' => $userData['satker_nama'],
+    ]);
+}
 
             Auth::login($user);
 

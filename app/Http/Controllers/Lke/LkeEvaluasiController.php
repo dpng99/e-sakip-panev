@@ -50,12 +50,13 @@ class LkeEvaluasiController extends Controller
         '677111', // JAM_BIDANG_PIDANA_MILITER (JAMPIDMIL)
         '691270', // BADAN PEMULIHAN ASET (BPA)
         '666405', // BADAN_PENDIDIKAN_DAN_PELATIHAN (BADIKLAT)
+        '419346', // JAM_BIDANG_PENGAWASAN (JAMWAS Satker - PM Only)
     ];
 
     /**
      * Check if a target satker can ONLY be evaluated by JAMWAS:
      * - Seluruh Kejaksaan Tinggi (id_sakip_level == 2)
-     * - Unit Eselon I / Pusat: JAMBIN, JAMINTEL, JAMDATUN, JAMPIDUM, JAMPIDSUS, JAMPIDMIL, BPA, BADIKLAT
+     * - Unit Eselon I / Pusat: JAMBIN, JAMINTEL, JAMDATUN, JAMPIDUM, JAMPIDSUS, JAMPIDMIL, BPA, BADIKLAT, JAMWAS (419346)
      */
     protected function isOnlyEvaluatedByJamwas($targetSatker)
     {
@@ -93,7 +94,9 @@ class LkeEvaluasiController extends Controller
             str_contains($targetNama, 'pemulihan_aset') ||
             str_contains($targetNama, 'pemulihan aset') ||
             str_contains($targetNama, 'badiklat') ||
-            str_contains($targetNama, 'badan_pendidikan')
+            str_contains($targetNama, 'badan_pendidikan') ||
+            str_contains($targetNama, 'jamwas') ||
+            str_contains($targetNama, 'jam_bidang_pengawasan')
         ) {
             return true;
         }
@@ -104,9 +107,9 @@ class LkeEvaluasiController extends Controller
     /**
      * Determine evaluator type:
      * - 'admin': Administrator Pusat
-     * - 'jamwas': Tim Pengawasan Pusat (JAMWAS)
-     * - 'kejati': Kejaksaan Tinggi (Level 2 - PM mandiri & Evaluasi Kejari/Cabjari)
-     * - 'pm': Satuan Kerja (Kejari, Cabjari, Unit Pusat)
+     * - 'jamwas': Tim Pengawasan Pusat (user 888882 - mengevaluasi Kejati & para Eselon 1)
+     * - 'pengawasan_kejati': Pengawasan Kejaksaan Tinggi (user wasxxxxxx - mengevaluasi Kejari & Cabjari di wilayah hukumnya)
+     * - 'pm': Satker Penilaian Mandiri (user 419346 JAMWAS, Kejati reguler, Kejari, Cabjari, Unit Pusat)
      * - 'unauthorized': Blocked from evaluation.
      */
     protected function getEvaluatorType()
@@ -128,27 +131,27 @@ class LkeEvaluasiController extends Controller
             return 'admin';
         }
 
-        // 2. JAMWAS (Jaksa Agung Muda Bidang Pengawasan)
-        $isJamwas = ($satker === '419346')
-            || in_array($satker, ['888882', 'Pengawasan', 'Panev'])
-            || str_contains($nama, 'jam_bidang_pengawasan')
-            || str_contains($nama, 'jamwas')
-            || (str_contains($nama, 'pengawasan') && !str_contains($nama, 'kejati') && !str_starts_with(strtolower($satker), 'was'));
+        // 2. JAMWAS Evaluator Pusat (user 888882, Panev)
+        // Catatan: User 419346 adalah satker JAMWAS yang HANYA bisa melakukan PM!
+        $isJamwasEvaluator = ($satker === '888882')
+            || in_array($satker, ['Panev'])
+            || ($nama === 'pengawasan' && $satker !== '419346' && !str_starts_with(strtolower($satker), 'was'));
 
-        if ($isJamwas) {
+        if ($isJamwasEvaluator) {
             return 'jamwas';
         }
 
-        // 3. Kejaksaan Tinggi (id_sakip_level == 2)
-        if ($level == 2 || $level == '2' || str_contains($nama, 'kejati')) {
-            return 'kejati';
+        // 3. User Pengawasan Kejati (wasxxxxxx, misal was005083)
+        // Permisionnya khusus melakukan evaluasi hasil PM LHE AKIP Kejari/Cabjari di wilayah hukumnya
+        if (str_starts_with(strtolower($satker), 'was')) {
+            return 'pengawasan_kejati';
         }
 
-        // 4. PM (Penilaian Mandiri) Satker - Kejaksaan Negeri, Cabang Kejaksaan Negeri, dan Unit Pusat
+        // 4. PM (Penilaian Mandiri) Satker:
+        // Termasuk user 419346 (JAMWAS), Kejati reguler (level 2), Kejari (level 3), Cabjari (level 4), Eselon 1 lainnya (level 1)
         if (
-            in_array($level, [1, 3, 4, '1', '3', '4'])
-            || str_contains($nama, 'kejari')
-            || str_contains($nama, 'cabjari')
+            $satker === '419346'
+            || in_array($level, [1, 2, 3, 4, '1', '2', '3', '4'])
             || in_array($satker, $this->centralUnitSatkerIds)
         ) {
             return 'pm';
@@ -185,8 +188,11 @@ class LkeEvaluasiController extends Controller
             return false;
         }
 
-        // 1. Jika tahap Penilaian Mandiri (PM): Setiap satker berhak mengisi PM untuk dirinya sendiri
+        // 1. Jika tahap Penilaian Mandiri (PM): User pengawasan (jamwas & pengawasan_kejati) TIDAK BOLEH melakukan PM!
         if ($tahap === 'pm') {
+            if ($evaluatorType === 'jamwas' || $evaluatorType === 'pengawasan_kejati') {
+                return false;
+            }
             return ((string)$target->id_satker === (string)$currentUser->id_satker);
         }
 
@@ -196,29 +202,21 @@ class LkeEvaluasiController extends Controller
             return true;
         }
 
-        // JAMWAS berwenang mengevaluasi KEJATI dan Unit Eselon I (JAMBIN, JAMINTEL, JAMDATUN, JAMPIDUM, JAMPIDSUS, JAMPIDMIL, BPA, BADIKLAT)
+        // JAMWAS (888882) berwenang mengevaluasi Seluruh KEJATI (Level 2) dan Unit Eselon I (termasuk 419346)
         if ($evaluatorType === 'jamwas') {
             return $this->isOnlyEvaluatedByJamwas($target);
         }
 
-        // Kejaksaan Tinggi (Level 2) berwenang melakukan EVALUASI terhadap Kejaksaan Negeri (3) dan Cabang Kejaksaan Negeri (4) di wilayah hukum Kejati
-        if ($evaluatorType === 'kejati' || (int)$currentUser->id_sakip_level === 2) {
+        // Pengawasan Kejati (wasxxxxxx) berwenang melakukan EVALUASI terhadap Kejaksaan Negeri (3) dan Cabang Kejaksaan Negeri (4) di wilayah hukumnya
+        if ($evaluatorType === 'pengawasan_kejati') {
             $targetLevel = (int)$target->id_sakip_level;
-
-            // Kejati TIDAK BISA mengevaluasi diri sendiri atau sesama Kejati atau Unit Eselon I (karena hanya bisa dievaluasi oleh JAMWAS)
-            if ($this->isOnlyEvaluatedByJamwas($target)) {
-                return false;
-            }
-
-            // Kejati mengevaluasi Kejari (3) dan Cabjari (4) dalam wilayah Kejati miliknya
             if (in_array($targetLevel, [3, 4])) {
                 return (!empty($currentUser->id_kejati) && (string)$target->id_kejati === (string)$currentUser->id_kejati);
             }
-
             return false;
         }
 
-        // Satker Kejari & Cabjari hanya mengisi PM, tidak berwenang mengevaluasi satker lain
+        // Akun Penilaian Mandiri (419346, Kejati reguler, Kejari, Cabjari) tidak berwenang mengevaluasi satker lain
         return false;
     }
 
@@ -236,7 +234,7 @@ class LkeEvaluasiController extends Controller
         $userSatkerId = (string)($currentUser ? $currentUser->id_satker : session('id_satker'));
 
         if ($evaluatorType === 'jamwas') {
-            // JAMWAS: Menilai Unit Eselon I (JAMBIN, JAMINTEL, dll) dan Seluruh KEJATI (Level 2)
+            // JAMWAS (888882): Menilai Unit Eselon I (termasuk 419346) dan Seluruh KEJATI (Level 2)
             $satkerList = DB::table('sinori_login')
                 ->where(function ($q) {
                     $q->where('id_sakip_level', 2)
@@ -246,13 +244,13 @@ class LkeEvaluasiController extends Controller
                       });
                 })
                 ->where('id_satker', 'not like', 'was%')
-                ->whereNotIn('id_satker', ['admin', '999999', '888881', '888882', 'Pengawasan', 'Panev', '419346'])
+                ->whereNotIn('id_satker', ['admin', '999999', '888881', '888882', 'Pengawasan', 'Panev'])
                 ->select('id_satker', 'satkernama', 'id_sakip_level', 'id_kejati')
                 ->orderBy('id_sakip_level', 'asc')
                 ->orderBy('satkernama', 'asc')
                 ->get();
-        } elseif ($evaluatorType === 'kejati' || $userLevel === 2) {
-            // Kejaksaan Tinggi: tampilkan Kejati sendiri (PM) dan Kejari & Cabjari di wilayahnya (Evaluasi)
+        } elseif ($evaluatorType === 'pengawasan_kejati') {
+            // Pengawasan Kejati (wasxxxxxx): Menilai Kejari (3) dan Cabjari (4) di wilayah hukum Kejati miliknya
             $kejatiId = $currentUser ? $currentUser->id_kejati : null;
 
             $query = DB::table('sinori_login')
@@ -263,29 +261,9 @@ class LkeEvaluasiController extends Controller
                         $q->where('id_satker', $userSatkerId);
                     }
                 })
-                ->whereIn('id_sakip_level', [2, 3, 4])
+                ->whereIn('id_sakip_level', [3, 4])
                 ->where('id_satker', 'not like', 'was%')
                 ->whereNotIn('id_satker', ['admin', '999999', '888881', '888882', 'Pengawasan', 'Panev']);
-
-            $satkerList = $query->select('id_satker', 'satkernama', 'id_sakip_level', 'id_kejati')
-                ->orderBy('id_sakip_level', 'asc')
-                ->orderBy('satkernama', 'asc')
-                ->get();
-        } elseif ($userLevel === 3) {
-            // Kejaksaan Negeri: diri sendiri dan Cabjari di bawahnya (jika ada)
-            $kejatiId = $currentUser ? $currentUser->id_kejati : null;
-            $query = DB::table('sinori_login')
-                ->where(function ($q) use ($userSatkerId, $currentUser, $kejatiId) {
-                    $q->where('id_satker', $userSatkerId);
-                    if ($kejatiId && isset($currentUser->id_kejari)) {
-                        $q->orWhere(function ($sub) use ($kejatiId, $currentUser) {
-                            $sub->where('id_kejati', $kejatiId)
-                                ->where('id_sakip_level', 4)
-                                ->where('id_kejari', $currentUser->id_kejari);
-                        });
-                    }
-                })
-                ->where('id_satker', 'not like', 'was%');
 
             $satkerList = $query->select('id_satker', 'satkernama', 'id_sakip_level', 'id_kejati')
                 ->orderBy('id_sakip_level', 'asc')
@@ -301,7 +279,7 @@ class LkeEvaluasiController extends Controller
                 ->orderBy('satkernama', 'asc')
                 ->get();
         } else {
-            // Cabang Kejaksaan Negeri atau Unit Pusat Mandiri: dirinya sendiri
+            // Satker PM (419346, Kejati reguler, Kejari, Cabjari): hanya dirinya sendiri
             $satkerList = DB::table('sinori_login')
                 ->where('id_satker', $userSatkerId)
                 ->select('id_satker', 'satkernama', 'id_sakip_level', 'id_kejati')
@@ -333,15 +311,11 @@ class LkeEvaluasiController extends Controller
         } elseif ($evaluatorType === 'jamwas') {
             // JAMWAS selalu bertindak sebagai Evaluator
             $activeMode = 'evaluasi';
-        } elseif ($evaluatorType === 'kejati' || $userLevel === 2) {
-            // Kejati: jika membuka Kejati sendiri -> mode PM; jika membuka Kejari/Cabjari -> mode Evaluasi!
-            if ($selectedId === $userSatkerId) {
-                $activeMode = 'pm';
-            } else {
-                $activeMode = 'evaluasi';
-            }
+        } elseif ($evaluatorType === 'pengawasan_kejati') {
+            // Pengawasan Kejati (wasxxxxxx) selalu bertindak sebagai Evaluator untuk Kejari & Cabjari di wilayahnya
+            $activeMode = 'evaluasi';
         } else {
-            // Kejari, Cabjari, dan Unit Pusat lainnya: selalu mode PM
+            // Satker PM (419346, Kejati reguler, Kejari, Cabjari): selalu mode PM
             $activeMode = 'pm';
         }
 
@@ -428,6 +402,15 @@ class LkeEvaluasiController extends Controller
         $tahap = $request->get('tahap', 'evaluasi');
         if ($tahap === 'pk') {
             $tahap = 'evaluasi';
+        }
+
+        // Validasi eksplisit: User Pengawasan dilarang keras melakukan Penilaian Mandiri (PM)
+        $evaluatorType = $this->getEvaluatorType();
+        if (($evaluatorType === 'jamwas' || $evaluatorType === 'pengawasan_kejati') && $tahap === 'pm') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses Ditolak: User Pengawasan tidak berwenang melakukan Penilaian Mandiri (PM).',
+            ], 403);
         }
 
         // Validasi otoritas wilayah / jenjang evaluator terhadap Satker yang dinilai

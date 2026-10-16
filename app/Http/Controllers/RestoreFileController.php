@@ -290,6 +290,15 @@ class RestoreFileController extends Controller
 
         $zip = new ZipArchive();
         if ($zip->open($file->getRealPath()) === true) {
+            // Mitigasi Zip Slip: Validasi nama setiap entri sebelum ekstraksi
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entryName = $zip->getNameIndex($i);
+                if (str_contains($entryName, '..') || str_starts_with($entryName, '/') || str_starts_with($entryName, '\\')) {
+                    $zip->close();
+                    File::deleteDirectory($tempExtractPath);
+                    return redirect()->back()->with('error', 'File ZIP tidak valid: terdeteksi path traversal.');
+                }
+            }
             $zip->extractTo($tempExtractPath);
             $zip->close();
         } else {
@@ -306,6 +315,11 @@ class RestoreFileController extends Controller
         foreach ($extractedFiles as $extFile) {
             $filename = $extFile->getFilename();
             $pathName = $extFile->getPathname();
+
+            // Cegah upload script web (hanya proses berkas .pdf)
+            if (!str_ends_with(strtolower($filename), '.pdf')) {
+                continue;
+            }
 
             if (isset($expectedDbMap[$filename])) {
                 $info = $expectedDbMap[$filename];
@@ -355,7 +369,7 @@ class RestoreFileController extends Controller
         $request->validate([
             'tahun_restore' => 'required|numeric',
             'files' => 'required|array',
-            'files.*' => 'file|max:20480',
+            'files.*' => 'required|file|mimes:pdf|max:20480',
         ]);
 
         $tahun = $request->tahun_restore;
@@ -365,7 +379,12 @@ class RestoreFileController extends Controller
         $savedCount = 0;
 
         foreach ($uploadedFiles as $file) {
-            $filename = $file->getClientOriginalName();
+            // Sanitasi nama file asli dan pastikan berekstensi .pdf
+            $rawName = basename($file->getClientOriginalName());
+            $filename = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $rawName);
+            if (!str_ends_with(strtolower($filename), '.pdf')) {
+                $filename .= '.pdf';
+            }
 
             if (isset($expectedDbMap[$filename])) {
                 $info = $expectedDbMap[$filename];

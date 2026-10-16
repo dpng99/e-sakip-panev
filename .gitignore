@@ -20,4 +20,4 @@ yarn-error.log
 /.vscode
 /*.heic
 /*.png
-
+/uploads

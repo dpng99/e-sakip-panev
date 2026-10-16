@@ -346,9 +346,10 @@ class LkeEvidenceHelper
 
         $combined = collect();
         $seenKeys = [];
+        $tahunVal = $tahun ? (int)$tahun : (session()->has('tahun_terpilih') ? (int)session('tahun_terpilih') : (int)date('Y'));
 
         // Helper to process row
-        $processRow = function ($row, $source) use (&$combined, &$seenKeys, $idSatkerClean) {
+        $processRow = function ($row, $source) use (&$combined, &$seenKeys, $idSatkerClean, $tahunVal) {
             $rawKriteria = $row->kriteria_id ?? $row->id_kriteria ?? '';
             $cleanKriteria = self::cleanKriteriaKode($rawKriteria);
             $filename = basename($row->link_bukti_dukung ?? '');
@@ -363,7 +364,7 @@ class LkeEvidenceHelper
             } elseif (!empty($row->kode_bukti) && is_numeric($row->kode_bukti)) {
                 $bId = (int)$row->kode_bukti;
             } else {
-                $bId = self::resolveBuktiId($filename, $cleanKriteria, $tahun);
+                $bId = self::resolveBuktiId($filename, $cleanKriteria, $tahunVal);
             }
 
             // Deduplication key

@@ -31,8 +31,10 @@ class SpipAuthController extends Controller
             // Gunakan Hash::check untuk memverifikasi password Bcrypt
             if (\Illuminate\Support\Facades\Hash::check($request->password, $passwordDiDatabase)) {
 
+                $request->session()->regenerate();
                 session([
                     'is_logged_in' => true,
+                    'user_id' => $user->id,
                     'satker' => $user->satker,
                     'username' => $user->username,
                     'jenis_penilaian' => $request->jenis_penilaian
@@ -52,7 +54,14 @@ class SpipAuthController extends Controller
             'new_password' => 'required|confirmed|min:6',
         ]);
 
-        $user = \App\Models\Spip\SpipUser::find(session('user_id'));
+        $userId = session('user_id');
+        if (!$userId) {
+            return redirect()->route('login.spip')->withErrors(['login_error' => 'Sesi berakhir, silakan login kembali.']);
+        }
+        $user = \App\Models\Spip\SpipUser::find($userId);
+        if (!$user) {
+            return redirect()->route('login.spip')->withErrors(['login_error' => 'Akun pengguna tidak ditemukan.']);
+        }
 
         // Cek apakah password lama sesuai (tergantung apakah PM atau PK)
         $passwordField = (session('jenis_penilaian') == 'pm') ? 'password_pm' : 'password_pk';

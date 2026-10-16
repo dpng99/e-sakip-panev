@@ -26,7 +26,7 @@ class LkeEvidenceMappingController extends Controller
             || $level == '99'
             || str_contains(strtolower((string)$satker), 'admin')
             || str_contains($nama, 'admin')
-            || app()->environment('local'); // Allow in local testing if needed
+            ;
 
         if (!$isAdmin) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat mengubah mapping Bukti Dukung.');

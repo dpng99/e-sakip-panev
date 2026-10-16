@@ -25,11 +25,11 @@ class LoginController extends Controller
 
         // SET DEFAULT TAHUN SAAT LOGIN
         session()->forget(['tahun_terpilih', 'tahun_ui', 'tw4_khusus']);
-            session([
-                'tahun_terpilih' => date('Y'),
-                'tahun_ui' => date('Y'),
-                'tw4_khusus' => 0, // false = 0
-            ]);
+        session([
+            'tahun_terpilih' => date('Y'),
+            'tahun_ui' => date('Y'),
+            'tw4_khusus' => 0, // false = 0
+        ]);
 
         $email = $request->input('email');
         $password = $request->input('password');
@@ -37,23 +37,21 @@ class LoginController extends Controller
         // Fetch user from database
         $user = DB::table('sinori_login')->where('id_satker', $email)->first();
 
-        // Check if user exists and password is correct
         if ($user && md5($password) === $user->satkerpass) {
-            // Store user data in session
-            $request->session()->put('id_satker', $user->id_satker);
-            $request->session()->put('satkernama', str_replace('_', ' ', $user->satkernama));
-            $request->session()->put('id_sakip_level', $user->id_sakip_level);
-            $request->session()->put('id_kejati', $user->id_kejati);
+    // Regenerasi ID sesi untuk mencegah Session Fixation
+    $request->session()->regenerate();
 
-            // Mark the user as logged in manually
-            auth()->loginUsingId($user->id_satker);
-            // dd($user->id_sakip_level); 
-            return redirect()->route('dashboard');
-        }
+    $request->session()->put('id_satker', $user->id_satker);
+    $request->session()->put('satkernama', str_replace('_', ' ', $user->satkernama));
+    $request->session()->put('id_sakip_level', $user->id_sakip_level);
+    $request->session()->put('id_kejati', $user->id_kejati);
+
+    auth()->loginUsingId($user->id_satker);
+    return redirect()->route('dashboard');
+}
 
         return back()->withErrors(['email' => 'User atau Password yang dimasukan salah!']);
     }
-
 
     // Menangani logout
     public function logout(Request $request)
@@ -62,8 +60,6 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Redirect ke halaman login
-        // return redirect('https://sicana.kejaksaan.go.id/');
         return redirect('/');
     }
 }

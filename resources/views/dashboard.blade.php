@@ -9,6 +9,11 @@
     $levelSakip = session('id_sakip_level', 0);
     $tahunUi = session('tahun_ui', $tahun ?? date('Y'));
 
+    $isLkeJamwas = in_array((string)$idSatker, ['888882', 'Pengawasan', 'Panev'])
+        || (strtolower($satkernama) === 'pengawasan' && (string)$idSatker !== '419346' && !str_starts_with(strtolower((string)$idSatker), 'was'));
+    $isLkePengawasanKejati = str_starts_with(strtolower((string)$idSatker), 'was');
+    $isUserPengawasan = $isLkeJamwas || $isLkePengawasanKejati;
+
     // Hitung persentase kepatuhan
     $kepatuhanItems = [
         ['nama' => 'Renstra', 'status' => $renstraTerisi, 'icon' => 'bi-file-earmark-ruled'],
@@ -48,24 +53,43 @@
                         <p class="text-white-50 mb-3 text-sm" style="max-width: 620px;">
                             Satuan Kerja: <strong class="text-white">{{ $satkernama }}</strong> (ID: {{ $idSatker }}). Kelola perencanaan, pelaporan, dan evaluasi akuntabilitas kinerja secara terpadu.
                         </p>
-                        <div class="d-flex flex-wrap gap-2 pt-1">
-                            <a href="{{ route('perencanaan') }}" class="btn-cta-gold">
-                                <i class="bi bi-calendar2-range me-1"></i> Mulai Perencanaan
-                            </a>
-                            <a href="{{ route('pelaporan') }}" class="btn-cta-secondary">
-                                <i class="bi bi-file-earmark-bar-graph me-1"></i> Pelaporan Kinerja
-                            </a>
-                        </div>
+                        @if ($isUserPengawasan)
+                            <div class="d-flex flex-wrap gap-2 pt-1">
+                                <a href="{{ route('lke.evaluasi.index') }}" class="btn-cta-gold">
+                                    <i class="bi bi-clipboard2-check me-1"></i> Evaluasi LKE AKIP
+                                </a>
+                                <a href="{{ route('evaluasi') }}" class="btn-cta-secondary">
+                                    <i class="bi bi-upload me-1"></i> Upload Dokumen LHE AKIP
+                                </a>
+                            </div>
+                        @else
+                            <div class="d-flex flex-wrap gap-2 pt-1">
+                                <a href="{{ route('perencanaan') }}" class="btn-cta-gold">
+                                    <i class="bi bi-calendar2-range me-1"></i> Mulai Perencanaan
+                                </a>
+                                <a href="{{ route('pelaporan') }}" class="btn-cta-secondary">
+                                    <i class="bi bi-file-earmark-bar-graph me-1"></i> Pelaporan Kinerja
+                                </a>
+                            </div>
+                        @endif
                     </div>
                     <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-                        <div class="d-inline-block kepatuhan-stat-box p-3 text-center text-white">
-                            <div class="small text-white-50 text-uppercase fw-semibold mb-1 text-xs">Kepatuhan Input</div>
-                            <h2 class="fw-bold mb-0 text-warning">{{ $persenKepatuhan }}%</h2>
-                            <div class="small text-white-50 mt-1 text-xs">{{ $terisiCount }} dari {{ $totalCount }} Terisi</div>
-                            <div class="progress mt-2" style="height: 6px; background-color: rgba(255,255,255,0.2);">
-                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $persenKepatuhan }}%;" aria-valuenow="{{ $persenKepatuhan }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        @if ($isUserPengawasan)
+                            <div class="d-inline-block kepatuhan-stat-box p-3 text-center text-white">
+                                <div class="small text-white-50 text-uppercase fw-semibold mb-1 text-xs">Peran Akun</div>
+                                <h4 class="fw-bold mb-0 text-warning">Pengawasan / Evaluator</h4>
+                                <div class="small text-white-50 mt-1 text-xs">Evaluasi LKE & LHE AKIP</div>
                             </div>
-                        </div>
+                        @else
+                            <div class="d-inline-block kepatuhan-stat-box p-3 text-center text-white">
+                                <div class="small text-white-50 text-uppercase fw-semibold mb-1 text-xs">Kepatuhan Input</div>
+                                <h2 class="fw-bold mb-0 text-warning">{{ $persenKepatuhan }}%</h2>
+                                <div class="small text-white-50 mt-1 text-xs">{{ $terisiCount }} dari {{ $totalCount }} Terisi</div>
+                                <div class="progress mt-2" style="height: 6px; background-color: rgba(255,255,255,0.2);">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $persenKepatuhan }}%;" aria-valuenow="{{ $persenKepatuhan }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -80,7 +104,7 @@
             <div class="col-lg-6">
 
                 <!-- 1. Kepatuhan Dokumen SAKIP -->
-                @if ($levelSakip != 0)
+                @if ($levelSakip != 0 && !$isUserPengawasan)
                     <div class="card mb-4">
                         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
                             <div class="d-flex align-items-center gap-2">
@@ -159,6 +183,7 @@
                     </div>
                 </div>
 
+                @if (!$isUserPengawasan)
                 <!-- 3. Akses Cepat: Sumber Aturan & FAQ -->
                 <div class="row g-3 mb-4">
                     <div class="col-sm-6">
@@ -198,6 +223,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <!-- 4. Gambaran Alur SAKIP -->
                 <div class="card mb-4">

@@ -72,6 +72,35 @@
             <i class="bi bi-grid-fill"></i> <span class="sidebar-text">Beranda</span>
         </a>
 
+        @php
+            $isLkeAdmin = in_array((string)$idSatker, ['admin', '999999', '888881'])
+                || $levelSakip == 99
+                || str_contains(strtolower((string)$idSatker), 'admin');
+
+            // 888882 adalah user JAMWAS Evaluator Pusat (Evaluasi Kejati & Para Eselon 1)
+            $isLkeJamwas = in_array((string)$idSatker, ['888882', 'Pengawasan', 'Panev'])
+                || ($satkernama === 'pengawasan' && (string)$idSatker !== '419346' && !str_starts_with(strtolower((string)$idSatker), 'was'));
+
+            // wasxxxxxx adalah user Pengawasan Kejati (Evaluasi Kejari & Cabjari wilayah)
+            $isLkePengawasanKejati = str_starts_with(strtolower((string)$idSatker), 'was');
+
+            // Flag Akun Pengawasan Murni (Hanya Evaluasi & Evaluasi LKE)
+            $isUserPengawasan = $isLkeJamwas || $isLkePengawasanKejati;
+
+            $centralIds = ['005016', '419345', '417023', '418326', '419344', '677111', '691270', '666405', '419346'];
+
+            // Satker PM: 419346 (JAMWAS PM), Kejati reguler (level 2), Kejari (level 3), Cabjari (level 4), Eselon 1 lainnya (level 1)
+            $isLkePm = (string)$idSatker === '419346'
+                || (int)$levelSakip == 2
+                || in_array((int)$levelSakip, [1, 3, 4])
+                || in_array((string)$idSatker, $centralIds)
+                || str_contains(strtolower($satkernama), 'kejari')
+                || str_contains(strtolower($satkernama), 'cabjari')
+                || str_contains(strtolower($satkernama), 'kejati');
+
+            $canEvaluateLke = $isLkeAdmin || $isLkeJamwas || $isLkePengawasanKejati || $isLkePm;
+        @endphp
+
         @if (auth()->check() || in_array($levelSakip, [99, 1, 2, 3, 4, 0]))
             <a href="#" id="toggle-submenu" class="toggle-btn {{ $submenuActive ? 'active' : '' }}" title="Tata Kelola AKIP">
                 <i class="bi bi-kanban-fill"></i> <span class="sidebar-text">Tata Kelola AKIP</span>
@@ -79,59 +108,41 @@
             </a>
 
             <div class="submenu" id="submenu" style="display: {{ $submenuActive ? 'block' : 'none' }};">
-                <a href="{{ route('perencanaan') }}" class="{{ request()->is('perencanaan*') ? 'active' : '' }}" title="Perencanaan">
-                    <i class="bi bi-calendar2-range-fill"></i> <span class="sidebar-text">Perencanaan</span>
-                </a>
-
-                {{-- Pengukuran untuk Admin, Kejati, Kejari, Cabjari, atau Kejagung (Level 1) --}}
-                @if ($tahun != 2024 && ($levelSakip == 99 || in_array((int)$levelSakip, [1, 2, 3, 4]) || in_array($idSatker, ['admin', '999999'])))
-                    @php
-                        $pengukuranRoute = ((int)$levelSakip == 1) ? route('pengukuran-ikp') : route('pengukuran');
-                    @endphp
-                    <a href="{{ $pengukuranRoute }}" class="{{ request()->is('pengukuran*') ? 'active' : '' }}" title="Pengukuran">
-                        <i class="bi bi-graph-up-arrow"></i> <span class="sidebar-text">Pengukuran</span>
+                @if (!$isUserPengawasan)
+                    <a href="{{ route('perencanaan') }}" class="{{ request()->is('perencanaan*') ? 'active' : '' }}" title="Perencanaan">
+                        <i class="bi bi-calendar2-range-fill"></i> <span class="sidebar-text">Perencanaan</span>
                     </a>
-                @endif
 
-                @if ($levelSakip == 99 || $levelSakip == 1 || $levelSakip == 2 || $levelSakip == 3 || $levelSakip == 4)
-                    <a href="{{ route('pelaporan') }}" class="{{ request()->is('pelaporan*') ? 'active' : '' }}" title="Pelaporan">
-                        <i class="bi bi-file-earmark-bar-graph-fill"></i> <span class="sidebar-text">Pelaporan</span>
-                    </a>
+                    {{-- Pengukuran untuk Admin, Kejati, Kejari, Cabjari, atau Kejagung (Level 1) --}}
+                    @if ($tahun != 2024 && ($levelSakip == 99 || in_array((int)$levelSakip, [1, 2, 3, 4]) || in_array($idSatker, ['admin', '999999'])))
+                        @php
+                            $pengukuranRoute = ((int)$levelSakip == 1) ? route('pengukuran-ikp') : route('pengukuran');
+                        @endphp
+                        <a href="{{ $pengukuranRoute }}" class="{{ request()->is('pengukuran*') ? 'active' : '' }}" title="Pengukuran">
+                            <i class="bi bi-graph-up-arrow"></i> <span class="sidebar-text">Pengukuran</span>
+                        </a>
+                    @endif
+
+                    @if ($levelSakip == 99 || $levelSakip == 1 || $levelSakip == 2 || $levelSakip == 3 || $levelSakip == 4)
+                        <a href="{{ route('pelaporan') }}" class="{{ request()->is('pelaporan*') ? 'active' : '' }}" title="Pelaporan">
+                            <i class="bi bi-file-earmark-bar-graph-fill"></i> <span class="sidebar-text">Pelaporan</span>
+                        </a>
+                    @endif
                 @endif
 
                 <a href="{{ route('evaluasi') }}" class="{{ request()->is('evaluasi') ? 'active' : '' }}" title="Evaluasi">
                     <i class="bi bi-clipboard2-check-fill"></i> <span class="sidebar-text">Evaluasi</span>
                 </a>
 
-                {{-- Menu Penilaian LKE (Untuk Kejati/PM, JAMWAS, dan ADMIN) --}}
-                @php
-                    $isLkeAdmin = in_array((string)$idSatker, ['admin', '999999', '888881'])
-                        || $levelSakip == 99
-                        || str_contains(strtolower((string)$idSatker), 'admin');
-
-                    $isLkeJamwas = (string)$idSatker === '419346'
-                        || in_array((string)$idSatker, ['888882', 'Pengawasan', 'Panev'])
-                        || str_contains(strtolower($satkernama), 'jam_bidang_pengawasan')
-                        || str_contains(strtolower($satkernama), 'jamwas')
-                        || (str_contains(strtolower($satkernama), 'pengawasan') && !str_contains(strtolower($satkernama), 'kejati') && !str_starts_with(strtolower((string)$idSatker), 'was'));
-
-                    $centralIds = ['005016', '419345', '417023', '418326', '419344', '677111', '691270', '666405'];
-
-                    $isLkeKejati = ((int)$levelSakip == 2 || str_contains(strtolower($satkernama), 'kejati')) && !$isLkeJamwas;
-
-                    $isLkePm = in_array((int)$levelSakip, [3, 4])
-                        || in_array((string)$idSatker, $centralIds)
-                        || str_contains(strtolower($satkernama), 'kejari')
-                        || str_contains(strtolower($satkernama), 'cabjari');
-
-                    $canEvaluateLke = $isLkeAdmin || $isLkeJamwas || $isLkeKejati || $isLkePm;
-                @endphp
+                {{-- Menu Penilaian LKE (Untuk PM Satker, Pengawasan Kejati, JAMWAS, dan ADMIN) --}}
                 @if ($canEvaluateLke)
                     @php
-                        if ($isLkeAdmin || $isLkeJamwas) {
+                        if ($isLkeAdmin) {
                             $lkeMenuTitle = 'Evaluasi LKE';
-                        } elseif ($isLkeKejati) {
-                            $lkeMenuTitle = 'Penilaian Mandiri & Evaluasi';
+                        } elseif ($isLkeJamwas) {
+                            $lkeMenuTitle = 'Evaluasi LKE';
+                        } elseif ($isLkePengawasanKejati) {
+                            $lkeMenuTitle = 'Evaluasi LKE Wilayah';
                         } else {
                             $lkeMenuTitle = 'Penilaian Mandiri (PM)';
                         }
@@ -163,7 +174,7 @@
             </div>
         @endif
 
-        @if ($levelSakip == 99 || $levelSakip == 0 || $levelSakip == 2)
+        @if (!$isUserPengawasan && ($levelSakip == 99 || $levelSakip == 0 || $levelSakip == 2))
             <a href="{{ route('sakipwil') }}" class="{{ request()->is('sakipwil') ? 'active' : '' }}" title="SAKIP Wilayah">
                 <i class="bi bi-globe2"></i> <span class="sidebar-text">SAKIP Wilayah</span>
             </a>
@@ -207,7 +218,7 @@
             </a>
         @endif
 
-        @if ($levelSakip == 99 || $levelSakip == 1 || $levelSakip == 2 || $levelSakip == 3 || $levelSakip == 4)
+        @if (!$isUserPengawasan && ($levelSakip == 99 || $levelSakip == 1 || $levelSakip == 2 || $levelSakip == 3 || $levelSakip == 4))
             <a href="{{ route('aturan') }}" class="{{ request()->is('aturan*') ? 'active' : '' }}" title="Sumber Aturan">
                 <i class="bi bi-book-half"></i> <span class="sidebar-text">Sumber Aturan</span>
             </a>
