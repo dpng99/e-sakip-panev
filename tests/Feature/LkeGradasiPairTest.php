@@ -40,7 +40,7 @@ class LkeGradasiPairTest extends TestCase
         $controller = new LkeEvaluasiController();
 
         // Ambil semua kriteria 1.B dan penuhi seluruhnya (100%)
-        $crits1B = LkeKriteria::where('tahun', $this->testTahun)->where('subkomponen_id', '1.B')->get();
+        $crits1B = LkeKriteria::where('subkomponen_id', '1.B')->get();
         foreach ($crits1B as $cr) {
             LkePenilaianSatker::create([
                 'id_satker'     => $this->testSatker,
@@ -54,7 +54,7 @@ class LkeGradasiPairTest extends TestCase
         }
 
         // Ambil kriteria 1.C dan hanya penuhi 1 saja (belum 100%)
-        $crits1C = LkeKriteria::where('tahun', $this->testTahun)->where('subkomponen_id', '1.C')->get();
+        $crits1C = LkeKriteria::where('subkomponen_id', '1.C')->get();
         if ($crits1C->count() > 1) {
             LkePenilaianSatker::create([
                 'id_satker'     => $this->testSatker,
@@ -96,7 +96,7 @@ class LkeGradasiPairTest extends TestCase
         $controller = new LkeEvaluasiController();
 
         // Penuhi 100% seluruh kriteria 1.B
-        $crits1B = LkeKriteria::where('tahun', $this->testTahun)->where('subkomponen_id', '1.B')->get();
+        $crits1B = LkeKriteria::where('subkomponen_id', '1.B')->get();
         foreach ($crits1B as $cr) {
             LkePenilaianSatker::create([
                 'id_satker'     => $this->testSatker,
@@ -110,7 +110,7 @@ class LkeGradasiPairTest extends TestCase
         }
 
         // Penuhi 100% seluruh kriteria 1.C
-        $crits1C = LkeKriteria::where('tahun', $this->testTahun)->where('subkomponen_id', '1.C')->get();
+        $crits1C = LkeKriteria::where('subkomponen_id', '1.C')->get();
         foreach ($crits1C as $cr) {
             LkePenilaianSatker::create([
                 'id_satker'     => $this->testSatker,
@@ -167,7 +167,7 @@ class LkeGradasiPairTest extends TestCase
 
         // Simulasikan 1.B 100% dan 1.C 100% untuk satker '005016'
         $satkerId = '005016';
-        $crits1B = LkeKriteria::where('tahun', $this->testTahun)->where('subkomponen_id', '1.B')->get();
+        $crits1B = LkeKriteria::where('subkomponen_id', '1.B')->get();
         foreach ($crits1B as $cr) {
             LkePenilaianSatker::updateOrCreate(
                 ['id_satker' => $satkerId, 'tahun' => $this->testTahun, 'kriteria_id' => $cr->kode],
@@ -176,7 +176,7 @@ class LkeGradasiPairTest extends TestCase
         }
 
         // 1.C dikosongkan dulu
-        $crits1C = LkeKriteria::where('tahun', $this->testTahun)->where('subkomponen_id', '1.C')->get();
+        $crits1C = LkeKriteria::where('subkomponen_id', '1.C')->get();
         LkePenilaianSatker::where('id_satker', $satkerId)
             ->where('tahun', $this->testTahun)
             ->whereIn('kriteria_id', $crits1C->pluck('kode'))

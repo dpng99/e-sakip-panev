@@ -48,7 +48,7 @@
                             </span>
                         </div>
                         <h2 class="fw-bold mb-2 text-white">
-                            Selamat Datang di PROSAKIP Kejaksaan RI
+                            Selamat Datang di E-SAKIP Kejaksaan RI
                         </h2>
                         <p class="text-white-50 mb-3 text-sm" style="max-width: 620px;">
                             Satuan Kerja: <strong class="text-white">{{ $satkernama }}</strong> (ID: {{ $idSatker }}). Kelola perencanaan, pelaporan, dan evaluasi akuntabilitas kinerja secara terpadu.

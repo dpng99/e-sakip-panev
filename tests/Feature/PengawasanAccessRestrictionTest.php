@@ -313,7 +313,7 @@ class PengawasanAccessRestrictionTest extends TestCase
         $user = User::where('id_satker', $this->wasKejati)->first();
 
         // Ambil kriteria pertama di database
-        $kriteria = DB::table('lke_kriteria')->where('tahun', $this->testTahun)->first();
+        $kriteria = DB::table('lke_kriteria')->first();
         if (!$kriteria) {
             $this->markTestSkipped('Data kriteria LKE belum tersedia.');
         }

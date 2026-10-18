@@ -263,6 +263,79 @@ WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_parameter' AND COLUMN_NAME
 SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_parameter` ADD COLUMN `tahun` smallint unsigned NOT NULL DEFAULT 2025 AFTER `updated_at`, ADD INDEX `lke_parameter_tahun_idx` (`tahun`), ADD INDEX `lke_parameter_tahun_kriteria_idx` (`tahun`, `kriteria_id`)', 'SELECT 1');
 PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- -----------------------------------------------------------------------------
+-- 11. TABEL: lke_buktidukung & lke_gabungan
+-- Memastikan tabel master bukti dukung dan relasi kriteria tersedia & lengkap
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `lke_buktidukung` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `dokumen` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `format_nama_file` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `keterangan` text COLLATE utf8mb4_unicode_ci,
+  `ada_di_sistem` tinyint(1) NOT NULL DEFAULT '0',
+  `tabel_sumber` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tahun` smallint unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `lke_buktidukung_tabel_sumber_index` (`tabel_sumber`),
+  KEY `lke_buktidukung_tahun_index` (`tahun`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_buktidukung' AND COLUMN_NAME = 'tabel_sumber';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_buktidukung` ADD COLUMN `tabel_sumber` varchar(100) COLLATE utf8mb4_unicode_ci NULL AFTER `ada_di_sistem`', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_buktidukung' AND COLUMN_NAME = 'tahun';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_buktidukung` ADD COLUMN `tahun` smallint unsigned NULL AFTER `tabel_sumber`', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_buktidukung' AND COLUMN_NAME = 'keterangan';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_buktidukung` ADD COLUMN `keterangan` text COLLATE utf8mb4_unicode_ci NULL AFTER `format_nama_file`', 'ALTER TABLE `lke_buktidukung` MODIFY COLUMN `keterangan` text COLLATE utf8mb4_unicode_ci NULL');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS `lke_gabungan` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `komponen_id` bigint unsigned DEFAULT NULL,
+  `sub_komponen_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `kriteria_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `buktidukung_id` int NOT NULL DEFAULT '0',
+  `tahun` smallint unsigned NOT NULL DEFAULT '2026',
+  PRIMARY KEY (`id`),
+  KEY `lke_gabungan_komponen_id_index` (`komponen_id`),
+  KEY `lke_gabungan_sub_komponen_id_index` (`sub_komponen_id`),
+  KEY `lke_gabungan_kriteria_id_index` (`kriteria_id`),
+  KEY `lke_gabungan_buktidukung_id_index` (`buktidukung_id`),
+  KEY `lke_gabungan_tahun_index` (`tahun`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Pastikan seluruh kolom pada lke_gabungan tersedia (MEMPERBAIKI ERROR 1054 Unknown column 'tahun')
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_gabungan' AND COLUMN_NAME = 'komponen_id';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_gabungan` ADD COLUMN `komponen_id` bigint unsigned NULL AFTER `id`, ADD INDEX `lke_gabungan_komponen_id_index` (`komponen_id`)', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_gabungan' AND COLUMN_NAME = 'sub_komponen_id';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_gabungan` ADD COLUMN `sub_komponen_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL AFTER `komponen_id`, ADD INDEX `lke_gabungan_sub_komponen_id_index` (`sub_komponen_id`)', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_gabungan' AND COLUMN_NAME = 'kriteria_id';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_gabungan` ADD COLUMN `kriteria_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL AFTER `sub_komponen_id`, ADD INDEX `lke_gabungan_kriteria_id_index` (`kriteria_id`)', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_gabungan' AND COLUMN_NAME = 'buktidukung_id';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_gabungan` ADD COLUMN `buktidukung_id` int NOT NULL DEFAULT 0 AFTER `kriteria_id`, ADD INDEX `lke_gabungan_buktidukung_id_index` (`buktidukung_id`)', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = 0;
+SELECT COUNT(*) INTO @col_exists FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lke_gabungan' AND COLUMN_NAME = 'tahun';
+SET @query = IF(@col_exists = 0, 'ALTER TABLE `lke_gabungan` ADD COLUMN `tahun` smallint unsigned NOT NULL DEFAULT 2025 AFTER `buktidukung_id`, ADD INDEX `lke_gabungan_tahun_index` (`tahun`)', 'SELECT 1');
+PREPARE stmt FROM @query; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================================================

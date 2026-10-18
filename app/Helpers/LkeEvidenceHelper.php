@@ -238,6 +238,18 @@ class LkeEvidenceHelper
                     str_contains($fn, 't-3')
                 ) && !str_contains($fn, 'tl_') && !str_contains($fn, 'tllhe');
 
+            case 45: // Screenshot Kepatuhan Rencana Kinerja MySimkari
+                return str_contains($fn, 'sampel_skp') || str_contains($fn, 'sample_skp') || str_contains($fn, 'rencana_kinerja');
+
+            case 46: // Screenshot Pengisian Capaian Kinerja IKSS E-SAKIP
+                return str_contains($fn, 'capaian_kinerja') || str_contains($fn, 'ikss') || str_contains($fn, 'pengukuran') || str_contains($fn, 'esakip') || str_contains($fn, 'ss_pengisian');
+
+            case 47: // Screenshot Monitoring Nilai Kinerja Perencanaan Anggaran (NKPA) Kemenkeu
+                return str_contains($fn, 'nkpa') || str_contains($fn, 'monev_kemenkeu') || str_contains($fn, 'perencanaan_anggaran');
+
+            case 48: // Screenshot Kepatuhan Sasaran Kerja Pegawai MySimkari
+                return str_contains($fn, 'sasaran_kerja') || str_contains($fn, 'skp');
+
             default:
                 // Dynamic support for custom/newly added Bukti Dukung (ID > 44)
                 $allMasters = self::getMasterBuktiList();

@@ -1,0 +1,39 @@
+﻿diff --git a/resources/views/dashboard.blade.php b/resources/views/dashboard.blade.php
+index bcfdd1c..879bb36 100644
+--- a/resources/views/dashboard.blade.php
++++ b/resources/views/dashboard.blade.php
+@@ -48,7 +48,7 @@
+                             </span>
+                         </div>
+                         <h2 class="fw-bold mb-2 text-white">
+-                            Selamat Datang di PROSAKIP Kejaksaan RI
++                            Selamat Datang di E-SAKIP Kejaksaan RI
+                         </h2>
+                         <p class="text-white-50 mb-3 text-sm" style="max-width: 620px;">
+                             Satuan Kerja: <strong class="text-white">{{ $satkernama }}</strong> (ID: {{ $idSatker }}). Kelola perencanaan, pelaporan, dan evaluasi akuntabilitas kinerja secara terpadu.
+diff --git a/resources/views/layouts/head.blade.php b/resources/views/layouts/head.blade.php
+index deace6e..68ed0c4 100644
+--- a/resources/views/layouts/head.blade.php
++++ b/resources/views/layouts/head.blade.php
+@@ -3,7 +3,7 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <meta name="csrf-token" content="{{ csrf_token() }}">
+     <link rel="icon" href="{{ asset('gambar/kejaksaan.png') }}" type="image/png">
+-    <title>@yield('title', 'Dashboard') - SAKIP Kejaksaan RI</title>
++    <title>@yield('title', 'Dashboard') - E-SAKIP Kejaksaan RI</title>
+ 
+     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+diff --git a/resources/views/layouts/sidebar.blade.php b/resources/views/layouts/sidebar.blade.php
+index 9a3bba5..e5d5fa5 100644
+--- a/resources/views/layouts/sidebar.blade.php
++++ b/resources/views/layouts/sidebar.blade.php
+@@ -41,7 +41,7 @@
+             </div>
+             <div class="sidebar-brand-text overflow-hidden">
+                 <div class="d-flex align-items-center gap-1">
+-                    <span class="fw-bold text-dark text-truncate" style="font-size: 0.98rem; letter-spacing: 0.5px;">PROSAKIP</span>
++                    <span class="fw-bold text-dark text-truncate" style="font-size: 0.98rem; letter-spacing: 0.5px;">E-SAKIP</span>
+                     <span class="badge bg-warning text-dark px-1 py-0" style="font-size: 0.65rem; font-weight: 700;">RI</span>
+                 </div>
+                 <small class="text-muted d-block text-truncate" style="font-size: 0.72rem; margin-top: -2px;">Kejaksaan Agung RI</small>

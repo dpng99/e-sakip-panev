@@ -14,6 +14,12 @@
             </p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            <form action="{{ route('lke.master_bukti.sync_schema') }}" method="POST" onsubmit="return confirm('Jalankan pemeriksaan & penambahan kolom database otomatis berdasarkan skema rujukan simemek3.sql? Kolom yang sudah ada tidak akan diubah.');" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm text-sm" title="Periksa dan tambahkan kolom yang belum ada di database secara idempoten">
+                    <i class="bi bi-arrow-repeat me-1"></i> Sinkronisasi Kolom DB
+                </button>
+            </form>
             <button type="button" class="btn btn-primary rounded-pill px-3 shadow-sm text-sm" data-bs-toggle="modal" data-bs-target="#createModal">
                 <i class="bi bi-plus-circle me-1"></i> Tambah Bukti Dukung Baru
             </button>

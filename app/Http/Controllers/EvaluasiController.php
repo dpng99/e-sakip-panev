@@ -314,18 +314,10 @@ class EvaluasiController extends Controller
         });
 
         // Load Unified LKE Hierarchy and Evidence for synchronized UX (matching Penilaian Mandiri)
-        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-        $komponenList = LkeKomponen::where('tahun', $targetTahun)
-            ->with([
-                'subkomponen' => function ($q) use ($targetTahun) {
-                    $q->where('tahun', $targetTahun);
-                },
-                'subkomponen.kriteria' => function ($q) use ($targetTahun) {
-                    $q->where('tahun', $targetTahun);
-                },
-                'subkomponen.kriteria.parameters' => function ($q) use ($targetTahun) {
-                    $q->where('tahun', $targetTahun);
-                }
+        $komponenList = LkeKomponen::with([
+                'subkomponen',
+                'subkomponen.kriteria',
+                'subkomponen.kriteria.parameters'
             ])
             ->orderBy('no')
             ->get();

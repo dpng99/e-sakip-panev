@@ -3,7 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" href="{{ asset('gambar/kejaksaan.png') }}" type="image/png">
-    <title>@yield('title', 'Dashboard') - SAKIP Kejaksaan RI</title>
+    <title>@yield('title', 'Dashboard') - E-SAKIP Kejaksaan RI</title>
 
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

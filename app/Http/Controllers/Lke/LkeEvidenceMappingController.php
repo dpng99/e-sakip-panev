@@ -45,16 +45,14 @@ class LkeEvidenceMappingController extends Controller
         $subkomponenFilter = $request->get('subkomponen_id');
         $search = $request->get('search');
 
-        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-
         // Komponen list for filter
-        $komponenList = LkeKomponen::where('tahun', $targetTahun)->orderBy('no')->get();
+        $komponenList = LkeKomponen::orderBy('no')->get();
 
         // Subkomponen list
-        $subkomponenList = LkeSubkomponen::where('tahun', $targetTahun)->orderBy('id')->get();
+        $subkomponenList = LkeSubkomponen::orderBy('id')->get();
 
         // Query Kriteria
-        $kriteriaQuery = LkeKriteria::where('tahun', $targetTahun)->with(['subkomponen.komponen']);
+        $kriteriaQuery = LkeKriteria::with(['subkomponen.komponen']);
 
         if ($subkomponenFilter) {
             $subObj = is_numeric($subkomponenFilter) ? LkeSubkomponen::find($subkomponenFilter) : LkeSubkomponen::where('kode', $subkomponenFilter)->first();
@@ -106,7 +104,7 @@ class LkeEvidenceMappingController extends Controller
     /**
      * Get criteria details with currently mapped evidence for modal editor.
      */
-    public function getCriteriaDetail($kode)
+    public function getCriteriaDetail(Request $request, $kode)
     {
         $this->checkAdmin();
 
@@ -172,11 +170,9 @@ class LkeEvidenceMappingController extends Controller
                 $kriteria->langkah_kerja = $request->input('langkah_kerja');
             }
             $kriteria->save();
-            $nowYear = $kriteria->tahun ?? (session('tahun_terpilih') ?? 2025);
 
-            // 2. Synchronize lke_gabungan
-            // Remove existing gabungan for this kriteria in current year
-            LkeGabungan::where('kriteria_id', $kode)->where('tahun', $nowYear)->delete();
+            // 2. Synchronize lke_gabungan (universal master relation, remove year filter)
+            LkeGabungan::where('kriteria_id', $kode)->delete();
 
             // Determine komponen_id and sub_komponen_id
             $sub = is_numeric($kriteria->subkomponen_id)
@@ -192,7 +188,6 @@ class LkeEvidenceMappingController extends Controller
                     'sub_komponen_id' => $subKode,
                     'kriteria_id'     => $kriteria->kode,
                     'buktidukung_id'  => $bId,
-                    'tahun'           => $nowYear,
                 ];
             }
 

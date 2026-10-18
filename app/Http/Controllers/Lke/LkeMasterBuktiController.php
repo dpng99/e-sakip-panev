@@ -34,13 +34,20 @@ class LkeMasterBuktiController extends Controller
 
         $masterBukti = LkeBuktidukung::orderBy('id')->get();
         
-        // Get distinct tabel_sumber from DB
-        $tabelSumberList = LkeBuktidukung::select('tabel_sumber')
-            ->whereNotNull('tabel_sumber')
-            ->where('tabel_sumber', '!=', '')
-            ->distinct()
-            ->pluck('tabel_sumber')
-            ->toArray();
+        // Get distinct tabel_sumber from DB (defensive check in case column is not yet migrated)
+        $tabelSumberList = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('lke_buktidukung', 'tabel_sumber')) {
+                $tabelSumberList = LkeBuktidukung::select('tabel_sumber')
+                    ->whereNotNull('tabel_sumber')
+                    ->where('tabel_sumber', '!=', '')
+                    ->distinct()
+                    ->pluck('tabel_sumber')
+                    ->toArray();
+            }
+        } catch (\Throwable $e) {
+            $tabelSumberList = [];
+        }
 
         // Ensure these common tables are at least in the list even if not in DB yet
         $commonTables = [
@@ -140,5 +147,26 @@ class LkeMasterBuktiController extends Controller
         $bukti->delete();
         \App\Helpers\LkeEvidenceHelper::clearCache();
         return redirect()->route('lke.master_bukti.index')->with('success', "Master Bukti Dukung ID #{$id} berhasil dihapus.");
+    }
+
+    /**
+     * Sinkronisasi struktur tabel dan penambahan kolom berdasarkan rujukan simemek3.sql secara idempoten.
+     */
+    public function syncSchema(\App\Services\DatabaseSchemaSyncService $syncService)
+    {
+        $this->checkAdmin();
+
+        try {
+            $result = $syncService->sync();
+            $msg = "Sinkronisasi struktur kolom database berhasil! " . ($result['added_columns'] > 0 
+                ? "Berhasil menambahkan {$result['added_columns']} kolom baru dan {$result['added_tables']} tabel baru." 
+                : "Semua kolom sudah ada dan lengkap ({$result['existing_columns']} kolom eksisting tidak perlu ditambah).");
+
+            return redirect()->route('lke.master_bukti.index')->with('success', $msg);
+        } catch (\Throwable $e) {
+            return redirect()->route('lke.master_bukti.index')->withErrors([
+                'error' => 'Gagal melakukan sinkronisasi kolom: ' . $e->getMessage()
+            ]);
+        }
     }
 }

@@ -23,11 +23,6 @@ class LkeSubkomponen extends Model
 
     public function kriteria()
     {
-        $rel = $this->hasMany(LkeKriteria::class, 'subkomponen_id', 'kode');
-        $targetYear = $this->tahun ?: (session()->has('tahun_terpilih') ? session('tahun_terpilih') : null);
-        if ($targetYear) {
-            $rel->where('lke_kriteria.tahun', $targetYear);
-        }
-        return $rel;
+        return $this->hasMany(LkeKriteria::class, 'subkomponen_id', 'kode');
     }
 }

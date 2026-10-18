@@ -50,6 +50,28 @@ Route::get('/cpanel-setup', function (\Illuminate\Http\Request $request) {
     } elseif ($action === 'migrate') {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $actionResult = 'Migrate: ' . \Illuminate\Support\Facades\Artisan::output();
+    } elseif ($action === 'sync-columns') {
+        $syncService = app(\App\Services\DatabaseSchemaSyncService::class);
+        $res = $syncService->sync();
+        $msg = "Hasil Sinkronisasi Kolom & Skema (Rujukan simemek3.sql):\n";
+        $msg .= "- Total tabel diperiksa   : {$res['tables_checked']}\n";
+        $msg .= "- Total kolom diperiksa   : {$res['columns_checked']}\n";
+        $msg .= "- Kolom sudah ada (aman)  : {$res['existing_columns']} (dilewati)\n";
+        $msg .= "- Tabel baru dibuat       : {$res['added_tables']}\n";
+        $msg .= "- Kolom baru ditambahkan  : {$res['added_columns']}\n";
+        if (!empty($res['executed'])) {
+            $msg .= "\nPerubahan Berhasil:\n";
+            foreach ($res['executed'] as $e) {
+                $msg .= "  ✓ {$e['message']}\n";
+            }
+        }
+        if (!empty($res['errors'])) {
+            $msg .= "\nKegagalan:\n";
+            foreach ($res['errors'] as $err) {
+                $msg .= "  ✗ {$err['message']}\n";
+            }
+        }
+        $actionResult = $msg;
     }
 
     $dbStatus = 'OK';
@@ -133,6 +155,7 @@ Route::get('/cpanel-setup', function (\Illuminate\Http\Request $request) {
             <a href="' . $currentUrl . '?key=prosakip2026&action=clear-cache" class="btn btn-warning">Bersihkan Cache (Optimize Clear)</a>
             <a href="' . $currentUrl . '?key=prosakip2026&action=storage-link" class="btn">Buat Storage Link</a>
             <a href="' . $currentUrl . '?key=prosakip2026&action=migrate" class="btn">Jalankan Migrasi Database</a>
+            <a href="' . $currentUrl . '?key=prosakip2026&action=sync-columns" class="btn" style="background: #0d9488;">Sinkronisasi Kolom DB (Idempoten)</a>
             <a href="' . url('/login-auto') . '" class="btn" style="background: #16a34a;">Buka Halaman Login</a>
         </div>
     </div>
@@ -292,6 +315,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/lke/master-bukti', [LkeMasterBuktiController::class, 'store'])->name('lke.master_bukti.store');
     Route::put('/lke/master-bukti/{id}', [LkeMasterBuktiController::class, 'update'])->name('lke.master_bukti.update');
     Route::delete('/lke/master-bukti/{id}', [LkeMasterBuktiController::class, 'destroy'])->name('lke.master_bukti.destroy');
+    Route::post('/lke/master-bukti/sync-schema', [LkeMasterBuktiController::class, 'syncSchema'])->name('lke.master_bukti.sync_schema');
 
     // === Pengumuman ===
     Route::get('/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman');

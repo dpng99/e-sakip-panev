@@ -1,0 +1,1464 @@
+{
+    "dokumen_sakips": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "kategori": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Misal: pedoman, template_2026, arsip_2025'",
+                "after": "id"
+            },
+            "judul": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "kategori"
+            },
+            "deskripsi": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "judul"
+            },
+            "url": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "deskripsi"
+            },
+            "icon": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "url"
+            },
+            "urutan": {
+                "definition": "int NOT NULL DEFAULT '0'",
+                "after": "icon"
+            },
+            "is_active": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '1'",
+                "after": "urutan"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "is_active"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `dokumen_sakips` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `kategori` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Misal: pedoman, template_2026, arsip_2025',\r\n  `judul` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `deskripsi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `urutan` int NOT NULL DEFAULT '0',\r\n  `is_active` tinyint(1) NOT NULL DEFAULT '1',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_calculation_runs": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "year": {
+                "definition": "smallint unsigned NOT NULL",
+                "after": "id"
+            },
+            "quarter": {
+                "definition": "tinyint unsigned NOT NULL",
+                "after": "year"
+            },
+            "satker_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "quarter"
+            },
+            "scope": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'satker'",
+                "after": "satker_id"
+            },
+            "trigger": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual'",
+                "after": "scope"
+            },
+            "status": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'running'",
+                "after": "trigger"
+            },
+            "parameters_count": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "status"
+            },
+            "values_count": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "parameters_count"
+            },
+            "started_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "values_count"
+            },
+            "finished_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "started_at"
+            },
+            "error_message": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "finished_at"
+            },
+            "stats": {
+                "definition": "json DEFAULT NULL",
+                "after": "error_message"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "stats"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "KEY `ikss_calculation_run_period_idx` (`year`,`quarter`,`status`)",
+            "KEY `ikss_calculation_run_satker_idx` (`satker_id`,`year`,`quarter`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_calculation_runs` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `year` smallint unsigned NOT NULL,\r\n  `quarter` tinyint unsigned NOT NULL,\r\n  `satker_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `scope` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'satker',\r\n  `trigger` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',\r\n  `status` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'running',\r\n  `parameters_count` int unsigned NOT NULL DEFAULT '0',\r\n  `values_count` int unsigned NOT NULL DEFAULT '0',\r\n  `started_at` timestamp NULL DEFAULT NULL,\r\n  `finished_at` timestamp NULL DEFAULT NULL,\r\n  `error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `stats` json DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  KEY `ikss_calculation_run_period_idx` (`year`,`quarter`,`status`),\r\n  KEY `ikss_calculation_run_satker_idx` (`satker_id`,`year`,`quarter`)\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_parameter_dependencies": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "parameter_id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": "id"
+            },
+            "source_parameter_id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": "parameter_id"
+            },
+            "role": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'component'",
+                "after": "source_parameter_id"
+            },
+            "weight": {
+                "definition": "decimal(16,6) DEFAULT NULL",
+                "after": "role"
+            },
+            "sort_order": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "weight"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "sort_order"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `ikss_parameter_dependency_unique` (`parameter_id`,`source_parameter_id`,`role`)",
+            "KEY `ikss_parameter_dependency_source_idx` (`source_parameter_id`,`parameter_id`)",
+            "CONSTRAINT `ikss_parameter_dependencies_parameter_id_foreign` FOREIGN KEY (`parameter_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE CASCADE",
+            "CONSTRAINT `ikss_parameter_dependencies_source_parameter_id_foreign` FOREIGN KEY (`source_parameter_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_parameter_dependencies` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `parameter_id` bigint unsigned NOT NULL,\r\n  `source_parameter_id` bigint unsigned NOT NULL,\r\n  `role` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'component',\r\n  `weight` decimal(16,6) DEFAULT NULL,\r\n  `sort_order` int unsigned NOT NULL DEFAULT '0',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `ikss_parameter_dependency_unique` (`parameter_id`,`source_parameter_id`,`role`),\r\n  KEY `ikss_parameter_dependency_source_idx` (`source_parameter_id`,`parameter_id`),\r\n  CONSTRAINT `ikss_parameter_dependencies_parameter_id_foreign` FOREIGN KEY (`parameter_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE CASCADE,\r\n  CONSTRAINT `ikss_parameter_dependencies_source_parameter_id_foreign` FOREIGN KEY (`source_parameter_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE CASCADE\r\n) ENGINE=InnoDB AUTO_INCREMENT=569 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_parameter_groups": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "ikss_id": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "id"
+            },
+            "parent_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "ikss_id"
+            },
+            "code": {
+                "definition": "varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "parent_id"
+            },
+            "name": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "code"
+            },
+            "description": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "name"
+            },
+            "section_code": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "description"
+            },
+            "group_type": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'table'",
+                "after": "section_code"
+            },
+            "settings": {
+                "definition": "json DEFAULT NULL",
+                "after": "group_type"
+            },
+            "sort_order": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "settings"
+            },
+            "is_active": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '1'",
+                "after": "sort_order"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "is_active"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `ikss_parameter_groups_code_unique` (`code`)",
+            "KEY `ikss_parameter_groups_parent_id_foreign` (`parent_id`)",
+            "KEY `ikss_parameter_group_catalog_idx` (`ikss_id`,`is_active`,`sort_order`)",
+            "KEY `ikss_parameter_group_section_idx` (`section_code`,`is_active`)",
+            "CONSTRAINT `ikss_parameter_groups_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `ikss_parameter_groups` (`id`) ON DELETE SET NULL"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_parameter_groups` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `ikss_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `parent_id` bigint unsigned DEFAULT NULL,\r\n  `code` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `section_code` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `group_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'table',\r\n  `settings` json DEFAULT NULL,\r\n  `sort_order` int unsigned NOT NULL DEFAULT '0',\r\n  `is_active` tinyint(1) NOT NULL DEFAULT '1',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `ikss_parameter_groups_code_unique` (`code`),\r\n  KEY `ikss_parameter_groups_parent_id_foreign` (`parent_id`),\r\n  KEY `ikss_parameter_group_catalog_idx` (`ikss_id`,`is_active`,`sort_order`),\r\n  KEY `ikss_parameter_group_section_idx` (`section_code`,`is_active`),\r\n  CONSTRAINT `ikss_parameter_groups_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `ikss_parameter_groups` (`id`) ON DELETE SET NULL\r\n) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_parameter_value_items": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "parameter_value_id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": "id"
+            },
+            "item_key": {
+                "definition": "varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "parameter_value_id"
+            },
+            "item_label": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "item_key"
+            },
+            "value_decimal": {
+                "definition": "decimal(24,6) DEFAULT NULL",
+                "after": "item_label"
+            },
+            "value_text": {
+                "definition": "longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "value_decimal"
+            },
+            "sort_order": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "value_text"
+            },
+            "metadata": {
+                "definition": "json DEFAULT NULL",
+                "after": "sort_order"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "metadata"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `ikss_parameter_value_item_unique` (`parameter_value_id`,`item_key`)",
+            "KEY `ikss_parameter_value_item_key_idx` (`item_key`,`parameter_value_id`)",
+            "CONSTRAINT `ikss_parameter_value_items_parameter_value_id_foreign` FOREIGN KEY (`parameter_value_id`) REFERENCES `ikss_parameter_values` (`id`) ON DELETE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_parameter_value_items` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `parameter_value_id` bigint unsigned NOT NULL,\r\n  `item_key` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `item_label` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `value_decimal` decimal(24,6) DEFAULT NULL,\r\n  `value_text` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `sort_order` int unsigned NOT NULL DEFAULT '0',\r\n  `metadata` json DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `ikss_parameter_value_item_unique` (`parameter_value_id`,`item_key`),\r\n  KEY `ikss_parameter_value_item_key_idx` (`item_key`,`parameter_value_id`),\r\n  CONSTRAINT `ikss_parameter_value_items_parameter_value_id_foreign` FOREIGN KEY (`parameter_value_id`) REFERENCES `ikss_parameter_values` (`id`) ON DELETE CASCADE\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_parameter_values": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "parameter_id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": "id"
+            },
+            "satker_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "parameter_id"
+            },
+            "year": {
+                "definition": "smallint unsigned NOT NULL",
+                "after": "satker_id"
+            },
+            "quarter": {
+                "definition": "tinyint unsigned NOT NULL",
+                "after": "year"
+            },
+            "month": {
+                "definition": "tinyint unsigned NOT NULL DEFAULT '0'",
+                "after": "quarter"
+            },
+            "value_decimal": {
+                "definition": "decimal(24,6) DEFAULT NULL",
+                "after": "month"
+            },
+            "value_text": {
+                "definition": "longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "value_decimal"
+            },
+            "source_type": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual'",
+                "after": "value_text"
+            },
+            "status": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft'",
+                "after": "source_type"
+            },
+            "source_count": {
+                "definition": "int unsigned NOT NULL DEFAULT '1'",
+                "after": "status"
+            },
+            "completeness": {
+                "definition": "decimal(5,2) NOT NULL DEFAULT '100.00'",
+                "after": "source_count"
+            },
+            "metadata": {
+                "definition": "json DEFAULT NULL",
+                "after": "completeness"
+            },
+            "entered_by": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "metadata"
+            },
+            "verified_by": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "entered_by"
+            },
+            "verified_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "verified_by"
+            },
+            "calculated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "verified_at"
+            },
+            "lock_version": {
+                "definition": "int unsigned NOT NULL DEFAULT '1'",
+                "after": "calculated_at"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "lock_version"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `ikss_parameter_value_period_unique` (`parameter_id`,`satker_id`,`year`,`quarter`,`month`)",
+            "KEY `ikss_parameter_value_satker_period_idx` (`satker_id`,`year`,`quarter`)",
+            "KEY `ikss_parameter_value_parameter_period_idx` (`parameter_id`,`year`,`quarter`)",
+            "KEY `ikss_parameter_value_source_period_idx` (`source_type`,`year`,`quarter`)",
+            "CONSTRAINT `ikss_parameter_values_parameter_id_foreign` FOREIGN KEY (`parameter_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_parameter_values` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `parameter_id` bigint unsigned NOT NULL,\r\n  `satker_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `year` smallint unsigned NOT NULL,\r\n  `quarter` tinyint unsigned NOT NULL,\r\n  `month` tinyint unsigned NOT NULL DEFAULT '0',\r\n  `value_decimal` decimal(24,6) DEFAULT NULL,\r\n  `value_text` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `source_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',\r\n  `status` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',\r\n  `source_count` int unsigned NOT NULL DEFAULT '1',\r\n  `completeness` decimal(5,2) NOT NULL DEFAULT '100.00',\r\n  `metadata` json DEFAULT NULL,\r\n  `entered_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `verified_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `verified_at` timestamp NULL DEFAULT NULL,\r\n  `calculated_at` timestamp NULL DEFAULT NULL,\r\n  `lock_version` int unsigned NOT NULL DEFAULT '1',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `ikss_parameter_value_period_unique` (`parameter_id`,`satker_id`,`year`,`quarter`,`month`),\r\n  KEY `ikss_parameter_value_satker_period_idx` (`satker_id`,`year`,`quarter`),\r\n  KEY `ikss_parameter_value_parameter_period_idx` (`parameter_id`,`year`,`quarter`),\r\n  KEY `ikss_parameter_value_source_period_idx` (`source_type`,`year`,`quarter`),\r\n  CONSTRAINT `ikss_parameter_values_parameter_id_foreign` FOREIGN KEY (`parameter_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE CASCADE\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_parameters": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "ikss_id": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "id"
+            },
+            "parent_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "ikss_id"
+            },
+            "group_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "parent_id"
+            },
+            "code": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "group_id"
+            },
+            "name": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "code"
+            },
+            "description": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "name"
+            },
+            "parameter_role": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'input'",
+                "after": "description"
+            },
+            "input_mode": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'scalar'",
+                "after": "parameter_role"
+            },
+            "source_type": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual'",
+                "after": "input_mode"
+            },
+            "source_reference": {
+                "definition": "varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "source_type"
+            },
+            "legacy_indicator_id": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "source_reference"
+            },
+            "value_type": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'number'",
+                "after": "legacy_indicator_id"
+            },
+            "unit": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "value_type"
+            },
+            "period_type": {
+                "definition": "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'quarterly'",
+                "after": "unit"
+            },
+            "calculation_method": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'input'",
+                "after": "period_type"
+            },
+            "aggregation_method": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'sum'",
+                "after": "calculation_method"
+            },
+            "aggregation_scope": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'children'",
+                "after": "aggregation_method"
+            },
+            "entry_levels": {
+                "definition": "json DEFAULT NULL",
+                "after": "aggregation_scope"
+            },
+            "aggregate_to_levels": {
+                "definition": "json DEFAULT NULL",
+                "after": "entry_levels"
+            },
+            "formula_config": {
+                "definition": "json DEFAULT NULL",
+                "after": "aggregate_to_levels"
+            },
+            "decimal_places": {
+                "definition": "tinyint unsigned NOT NULL DEFAULT '2'",
+                "after": "formula_config"
+            },
+            "sort_order": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "decimal_places"
+            },
+            "is_result": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "sort_order"
+            },
+            "is_required": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "is_result"
+            },
+            "include_in_report": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '1'",
+                "after": "is_required"
+            },
+            "is_active": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '1'",
+                "after": "include_in_report"
+            },
+            "valid_from_year": {
+                "definition": "smallint unsigned DEFAULT NULL",
+                "after": "is_active"
+            },
+            "valid_until_year": {
+                "definition": "smallint unsigned DEFAULT NULL",
+                "after": "valid_from_year"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "valid_until_year"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `ikss_parameters_ikss_id_code_unique` (`ikss_id`,`code`)",
+            "KEY `ikss_parameters_parent_id_foreign` (`parent_id`)",
+            "KEY `ikss_parameter_catalog_idx` (`ikss_id`,`is_active`,`sort_order`)",
+            "KEY `ikss_parameter_legacy_idx` (`legacy_indicator_id`,`is_active`)",
+            "KEY `ikss_parameter_group_order_idx` (`group_id`,`is_active`,`sort_order`)",
+            "KEY `ikss_parameter_source_idx` (`source_type`,`source_reference`)",
+            "CONSTRAINT `ikss_parameters_group_id_foreign` FOREIGN KEY (`group_id`) REFERENCES `ikss_parameter_groups` (`id`) ON DELETE SET NULL",
+            "CONSTRAINT `ikss_parameters_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE SET NULL"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_parameters` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `ikss_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `parent_id` bigint unsigned DEFAULT NULL,\r\n  `group_id` bigint unsigned DEFAULT NULL,\r\n  `code` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `parameter_role` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'input',\r\n  `input_mode` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'scalar',\r\n  `source_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',\r\n  `source_reference` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `legacy_indicator_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `value_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'number',\r\n  `unit` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `period_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'quarterly',\r\n  `calculation_method` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'input',\r\n  `aggregation_method` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'sum',\r\n  `aggregation_scope` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'children',\r\n  `entry_levels` json DEFAULT NULL,\r\n  `aggregate_to_levels` json DEFAULT NULL,\r\n  `formula_config` json DEFAULT NULL,\r\n  `decimal_places` tinyint unsigned NOT NULL DEFAULT '2',\r\n  `sort_order` int unsigned NOT NULL DEFAULT '0',\r\n  `is_result` tinyint(1) NOT NULL DEFAULT '0',\r\n  `is_required` tinyint(1) NOT NULL DEFAULT '0',\r\n  `include_in_report` tinyint(1) NOT NULL DEFAULT '1',\r\n  `is_active` tinyint(1) NOT NULL DEFAULT '1',\r\n  `valid_from_year` smallint unsigned DEFAULT NULL,\r\n  `valid_until_year` smallint unsigned DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `ikss_parameters_ikss_id_code_unique` (`ikss_id`,`code`),\r\n  KEY `ikss_parameters_parent_id_foreign` (`parent_id`),\r\n  KEY `ikss_parameter_catalog_idx` (`ikss_id`,`is_active`,`sort_order`),\r\n  KEY `ikss_parameter_legacy_idx` (`legacy_indicator_id`,`is_active`),\r\n  KEY `ikss_parameter_group_order_idx` (`group_id`,`is_active`,`sort_order`),\r\n  KEY `ikss_parameter_source_idx` (`source_type`,`source_reference`),\r\n  CONSTRAINT `ikss_parameters_group_id_foreign` FOREIGN KEY (`group_id`) REFERENCES `ikss_parameter_groups` (`id`) ON DELETE SET NULL,\r\n  CONSTRAINT `ikss_parameters_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `ikss_parameters` (`id`) ON DELETE SET NULL\r\n) ENGINE=InnoDB AUTO_INCREMENT=505 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "ikss_results": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "ikss_id": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "id"
+            },
+            "satker_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "ikss_id"
+            },
+            "year": {
+                "definition": "smallint unsigned NOT NULL",
+                "after": "satker_id"
+            },
+            "quarter": {
+                "definition": "tinyint unsigned NOT NULL",
+                "after": "year"
+            },
+            "target": {
+                "definition": "decimal(24,6) DEFAULT NULL",
+                "after": "quarter"
+            },
+            "capaian": {
+                "definition": "decimal(24,6) DEFAULT NULL",
+                "after": "target"
+            },
+            "achievement": {
+                "definition": "decimal(12,4) DEFAULT NULL",
+                "after": "capaian"
+            },
+            "source_count": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "achievement"
+            },
+            "completeness": {
+                "definition": "decimal(5,2) NOT NULL DEFAULT '0.00'",
+                "after": "source_count"
+            },
+            "status": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'calculated'",
+                "after": "completeness"
+            },
+            "details": {
+                "definition": "json DEFAULT NULL",
+                "after": "status"
+            },
+            "calculated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "details"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "calculated_at"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `ikss_result_period_unique` (`ikss_id`,`satker_id`,`year`,`quarter`)",
+            "KEY `ikss_result_satker_period_idx` (`satker_id`,`year`,`quarter`)",
+            "KEY `ikss_result_ikss_period_idx` (`ikss_id`,`year`,`quarter`)",
+            "KEY `ikss_result_ranking_idx` (`year`,`quarter`,`achievement`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `ikss_results` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `ikss_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `satker_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `year` smallint unsigned NOT NULL,\r\n  `quarter` tinyint unsigned NOT NULL,\r\n  `target` decimal(24,6) DEFAULT NULL,\r\n  `capaian` decimal(24,6) DEFAULT NULL,\r\n  `achievement` decimal(12,4) DEFAULT NULL,\r\n  `source_count` int unsigned NOT NULL DEFAULT '0',\r\n  `completeness` decimal(5,2) NOT NULL DEFAULT '0.00',\r\n  `status` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'calculated',\r\n  `details` json DEFAULT NULL,\r\n  `calculated_at` timestamp NULL DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `ikss_result_period_unique` (`ikss_id`,`satker_id`,`year`,`quarter`),\r\n  KEY `ikss_result_satker_period_idx` (`satker_id`,`year`,`quarter`),\r\n  KEY `ikss_result_ikss_period_idx` (`ikss_id`,`year`,`quarter`),\r\n  KEY `ikss_result_ranking_idx` (`year`,`quarter`,`achievement`)\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "indikator_kinerja_program": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "sasaran_program_id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": "id"
+            },
+            "kode_ikp": {
+                "definition": "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Misal: IKP 13.1, IKP 3.2'",
+                "after": "sasaran_program_id"
+            },
+            "nama_ikp": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama Indikator Kinerja Program'",
+                "after": "kode_ikp"
+            },
+            "id_satker": {
+                "definition": "varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'FK ke satker pengampu'",
+                "after": "nama_ikp"
+            },
+            "sifat_node": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'AVERAGE' COMMENT 'AVERAGE, RATIO_PERCENTAGE, INDEX_SCORE, DIRECT_INPUT'",
+                "after": "id_satker"
+            },
+            "tahun": {
+                "definition": "varchar(4) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "sifat_node"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "tahun"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `uq_ikp` (`kode_ikp`,`id_satker`,`tahun`)",
+            "KEY `indikator_kinerja_program_sasaran_program_id_foreign` (`sasaran_program_id`)",
+            "CONSTRAINT `indikator_kinerja_program_sasaran_program_id_foreign` FOREIGN KEY (`sasaran_program_id`) REFERENCES `sasaran_program` (`id`) ON DELETE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `indikator_kinerja_program` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `sasaran_program_id` bigint unsigned NOT NULL,\r\n  `kode_ikp` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Misal: IKP 13.1, IKP 3.2',\r\n  `nama_ikp` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama Indikator Kinerja Program',\r\n  `id_satker` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'FK ke satker pengampu',\r\n  `sifat_node` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'AVERAGE' COMMENT 'AVERAGE, RATIO_PERCENTAGE, INDEX_SCORE, DIRECT_INPUT',\r\n  `tahun` varchar(4) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `uq_ikp` (`kode_ikp`,`id_satker`,`tahun`),\r\n  KEY `indikator_kinerja_program_sasaran_program_id_foreign` (`sasaran_program_id`),\r\n  CONSTRAINT `indikator_kinerja_program_sasaran_program_id_foreign` FOREIGN KEY (`sasaran_program_id`) REFERENCES `sasaran_program` (`id`) ON DELETE CASCADE\r\n) ENGINE=InnoDB AUTO_INCREMENT=127 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "indikator_saspro": {
+        "columns": {
+            "kode_indikator": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": null
+            },
+            "kode_sastra": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "kode_indikator"
+            },
+            "kode_saspro": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "kode_sastra"
+            },
+            "nama_indikator": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "kode_saspro"
+            },
+            "deskripsi_indikator_saspro": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "nama_indikator"
+            },
+            "link": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "deskripsi_indikator_saspro"
+            },
+            "lingkup": {
+                "definition": "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0'",
+                "after": "link"
+            },
+            "tahun": {
+                "definition": "varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "lingkup"
+            },
+            "hide": {
+                "definition": "varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0'",
+                "after": "tahun"
+            },
+            "urutan": {
+                "definition": "int unsigned DEFAULT NULL",
+                "after": "hide"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`kode_indikator`)",
+            "KEY `indikator_saspro_kode_saspro_foreign` (`kode_saspro`)",
+            "KEY `indikator_saspro_kode_sastra_foreign` (`kode_sastra`)",
+            "CONSTRAINT `indikator_saspro_kode_saspro_foreign` FOREIGN KEY (`kode_saspro`) REFERENCES `sakip_saspro_new` (`id_saspro`) ON DELETE CASCADE ON UPDATE CASCADE",
+            "CONSTRAINT `indikator_saspro_kode_sastra_foreign` FOREIGN KEY (`kode_sastra`) REFERENCES `sakip_sastra_new` (`id_sastra`) ON DELETE CASCADE ON UPDATE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `indikator_saspro` (\r\n  `kode_indikator` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `kode_sastra` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `kode_saspro` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `nama_indikator` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `deskripsi_indikator_saspro` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `link` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `lingkup` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0',\r\n  `tahun` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `hide` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0',\r\n  `urutan` int unsigned DEFAULT NULL,\r\n  PRIMARY KEY (`kode_indikator`),\r\n  KEY `indikator_saspro_kode_saspro_foreign` (`kode_saspro`),\r\n  KEY `indikator_saspro_kode_sastra_foreign` (`kode_sastra`),\r\n  CONSTRAINT `indikator_saspro_kode_saspro_foreign` FOREIGN KEY (`kode_saspro`) REFERENCES `sakip_saspro_new` (`id_saspro`) ON DELETE CASCADE ON UPDATE CASCADE,\r\n  CONSTRAINT `indikator_saspro_kode_sastra_foreign` FOREIGN KEY (`kode_sastra`) REFERENCES `sakip_sastra_new` (`id_sastra`) ON DELETE CASCADE ON UPDATE CASCADE\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "indikator_sastra": {
+        "columns": {
+            "kode_indikator": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": null
+            },
+            "kode_sastra": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "kode_indikator"
+            },
+            "nama_indikator": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "kode_sastra"
+            },
+            "deskripsi_indikator_sastra": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "nama_indikator"
+            },
+            "tahun": {
+                "definition": "varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "deskripsi_indikator_sastra"
+            },
+            "hide": {
+                "definition": "varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0'",
+                "after": "tahun"
+            },
+            "urutan": {
+                "definition": "int unsigned DEFAULT NULL",
+                "after": "hide"
+            },
+            "link": {
+                "definition": "char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "urutan"
+            },
+            "lingkup": {
+                "definition": "char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "link"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`kode_indikator`)",
+            "KEY `indikator_sastra_kode_sastra_foreign` (`kode_sastra`)",
+            "CONSTRAINT `indikator_sastra_kode_sastra_foreign` FOREIGN KEY (`kode_sastra`) REFERENCES `sakip_sastra_new` (`id_sastra`) ON DELETE CASCADE ON UPDATE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `indikator_sastra` (\r\n  `kode_indikator` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `kode_sastra` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `nama_indikator` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `deskripsi_indikator_sastra` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `tahun` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `hide` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0',\r\n  `urutan` int unsigned DEFAULT NULL,\r\n  `link` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `lingkup` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  PRIMARY KEY (`kode_indikator`),\r\n  KEY `indikator_sastra_kode_sastra_foreign` (`kode_sastra`),\r\n  CONSTRAINT `indikator_sastra_kode_sastra_foreign` FOREIGN KEY (`kode_sastra`) REFERENCES `sakip_sastra_new` (`id_sastra`) ON DELETE CASCADE ON UPDATE CASCADE\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "komponen": {
+        "columns": {
+            "id": {
+                "definition": "int NOT NULL",
+                "after": null
+            },
+            "nama_komponen": {
+                "definition": "varchar(255) NOT NULL",
+                "after": "id"
+            },
+            "bobot": {
+                "definition": "int NOT NULL",
+                "after": "nama_komponen"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `komponen` (\r\n  `id` int NOT NULL,\r\n  `nama_komponen` varchar(255) NOT NULL,\r\n  `bobot` int NOT NULL,\r\n  PRIMARY KEY (`id`)\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
+    },
+    "kriteria": {
+        "columns": {
+            "no": {
+                "definition": "bigint NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "kode": {
+                "definition": "varchar(255) DEFAULT NULL",
+                "after": "no"
+            },
+            "id": {
+                "definition": "varchar(512) NOT NULL",
+                "after": "kode"
+            },
+            "id_sub_komponen": {
+                "definition": "varchar(512) DEFAULT NULL",
+                "after": "id"
+            },
+            "nama_kriteria": {
+                "definition": "varchar(512) DEFAULT NULL",
+                "after": "id_sub_komponen"
+            },
+            "bukti_tulisan": {
+                "definition": "varchar(512) DEFAULT NULL",
+                "after": "nama_kriteria"
+            },
+            "keterangan": {
+                "definition": "varchar(512) DEFAULT NULL",
+                "after": "bukti_tulisan"
+            },
+            "bukti_pengisian": {
+                "definition": "varchar(512) DEFAULT NULL",
+                "after": "keterangan"
+            },
+            "format_nama_file": {
+                "definition": "varchar(512) DEFAULT NULL",
+                "after": "bukti_pengisian"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`no`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `kriteria` (\r\n  `no` bigint NOT NULL AUTO_INCREMENT,\r\n  `kode` varchar(255) DEFAULT NULL,\r\n  `id` varchar(512) NOT NULL,\r\n  `id_sub_komponen` varchar(512) DEFAULT NULL,\r\n  `nama_kriteria` varchar(512) DEFAULT NULL,\r\n  `bukti_tulisan` varchar(512) DEFAULT NULL,\r\n  `keterangan` varchar(512) DEFAULT NULL,\r\n  `bukti_pengisian` varchar(512) DEFAULT NULL,\r\n  `format_nama_file` varchar(512) DEFAULT NULL,\r\n  PRIMARY KEY (`no`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
+    },
+    "lke_buktidukung": {
+        "columns": {
+            "id": {
+                "definition": "int NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "dokumen": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL",
+                "after": "id"
+            },
+            "format_nama_file": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL",
+                "after": "dokumen"
+            },
+            "keterangan": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "format_nama_file"
+            },
+            "ada_di_sistem": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "keterangan"
+            },
+            "tabel_sumber": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL",
+                "after": "ada_di_sistem"
+            },
+            "tahun": {
+                "definition": "smallint unsigned DEFAULT NULL",
+                "after": "tabel_sumber"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "KEY `lke_buktidukung_tahun_idx` (`tahun`)",
+            "KEY `lke_buktidukung_tabel_sumber_index` (`tabel_sumber`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_buktidukung` (\r\n  `id` int NOT NULL AUTO_INCREMENT,\r\n  `dokumen` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,\r\n  `format_nama_file` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,\r\n  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `ada_di_sistem` tinyint(1) NOT NULL DEFAULT '0',\r\n  `tabel_sumber` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,\r\n  `tahun` smallint unsigned DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  KEY `lke_buktidukung_tahun_idx` (`tahun`),\r\n  KEY `lke_buktidukung_tabel_sumber_index` (`tabel_sumber`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=270 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;"
+    },
+    "lke_gabungan": {
+        "columns": {
+            "id": {
+                "definition": "int NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "komponen_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "id"
+            },
+            "sub_komponen_id": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "komponen_id"
+            },
+            "kriteria_id": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "sub_komponen_id"
+            },
+            "buktidukung_id": {
+                "definition": "int NOT NULL DEFAULT (0)",
+                "after": "kriteria_id"
+            },
+            "tahun": {
+                "definition": "smallint unsigned NOT NULL DEFAULT '2025'",
+                "after": "buktidukung_id"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "KEY `Index 2` (`komponen_id`)",
+            "KEY `Index 3` (`sub_komponen_id`)",
+            "KEY `Index 4` (`kriteria_id`)",
+            "KEY `Index 5` (`buktidukung_id`)",
+            "KEY `lke_gabungan_tahun_idx` (`tahun`)",
+            "KEY `lke_gabungan_tahun_kriteria_idx` (`tahun`,`kriteria_id`)",
+            "KEY `lke_gabungan_tahun_subkomponen_foreign` (`tahun`,`sub_komponen_id`)",
+            "CONSTRAINT `FK_lke_gabungan_lke_buktidukung` FOREIGN KEY (`buktidukung_id`) REFERENCES `lke_buktidukung` (`id`) ON DELETE CASCADE",
+            "CONSTRAINT `FK_lke_gabungan_lke_komponen` FOREIGN KEY (`komponen_id`) REFERENCES `lke_komponen` (`id`) ON DELETE CASCADE",
+            "CONSTRAINT `lke_gabungan_tahun_kriteria_foreign` FOREIGN KEY (`tahun`, `kriteria_id`) REFERENCES `lke_kriteria` (`tahun`, `kode`) ON DELETE CASCADE ON UPDATE CASCADE",
+            "CONSTRAINT `lke_gabungan_tahun_subkomponen_foreign` FOREIGN KEY (`tahun`, `sub_komponen_id`) REFERENCES `lke_subkomponen` (`tahun`, `kode`) ON DELETE CASCADE ON UPDATE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_gabungan` (\r\n  `id` int NOT NULL AUTO_INCREMENT,\r\n  `komponen_id` bigint unsigned DEFAULT NULL,\r\n  `sub_komponen_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `kriteria_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `buktidukung_id` int NOT NULL DEFAULT (0),\r\n  `tahun` smallint unsigned NOT NULL DEFAULT '2025',\r\n  PRIMARY KEY (`id`),\r\n  KEY `Index 2` (`komponen_id`),\r\n  KEY `Index 3` (`sub_komponen_id`),\r\n  KEY `Index 4` (`kriteria_id`),\r\n  KEY `Index 5` (`buktidukung_id`),\r\n  KEY `lke_gabungan_tahun_idx` (`tahun`),\r\n  KEY `lke_gabungan_tahun_kriteria_idx` (`tahun`,`kriteria_id`),\r\n  KEY `lke_gabungan_tahun_subkomponen_foreign` (`tahun`,`sub_komponen_id`),\r\n  CONSTRAINT `FK_lke_gabungan_lke_buktidukung` FOREIGN KEY (`buktidukung_id`) REFERENCES `lke_buktidukung` (`id`) ON DELETE CASCADE,\r\n  CONSTRAINT `FK_lke_gabungan_lke_komponen` FOREIGN KEY (`komponen_id`) REFERENCES `lke_komponen` (`id`) ON DELETE CASCADE,\r\n  CONSTRAINT `lke_gabungan_tahun_kriteria_foreign` FOREIGN KEY (`tahun`, `kriteria_id`) REFERENCES `lke_kriteria` (`tahun`, `kode`) ON DELETE CASCADE ON UPDATE CASCADE,\r\n  CONSTRAINT `lke_gabungan_tahun_subkomponen_foreign` FOREIGN KEY (`tahun`, `sub_komponen_id`) REFERENCES `lke_subkomponen` (`tahun`, `kode`) ON DELETE CASCADE ON UPDATE CASCADE\r\n) ENGINE=InnoDB AUTO_INCREMENT=1354 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
+    },
+    "lke_komponen": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": null
+            },
+            "no": {
+                "definition": "int NOT NULL",
+                "after": "id"
+            },
+            "nama": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "no"
+            },
+            "bobot": {
+                "definition": "decimal(5,2) NOT NULL DEFAULT '0.00'",
+                "after": "nama"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "bobot"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            },
+            "tahun": {
+                "definition": "smallint unsigned NOT NULL DEFAULT '2025'",
+                "after": "updated_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "KEY `lke_komponen_tahun_idx` (`tahun`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_komponen` (\r\n  `id` bigint unsigned NOT NULL,\r\n  `no` int NOT NULL,\r\n  `nama` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `bobot` decimal(5,2) NOT NULL DEFAULT '0.00',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  `tahun` smallint unsigned NOT NULL DEFAULT '2025',\r\n  PRIMARY KEY (`id`),\r\n  KEY `lke_komponen_tahun_idx` (`tahun`)\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lke_kriteria": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": null
+            },
+            "subkomponen_id": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0'",
+                "after": "id"
+            },
+            "kode": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "subkomponen_id"
+            },
+            "nama": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "kode"
+            },
+            "dokumen_bukti": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "nama"
+            },
+            "langkah_kerja": {
+                "definition": "text COLLATE utf8mb4_unicode_ci",
+                "after": "dokumen_bukti"
+            },
+            "kode_bukti": {
+                "definition": "char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "langkah_kerja"
+            },
+            "eselon_i": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "kode_bukti"
+            },
+            "kejati": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "eselon_i"
+            },
+            "kejari": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "kejati"
+            },
+            "cabjari": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '0'",
+                "after": "kejari"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "cabjari"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            },
+            "tahun": {
+                "definition": "smallint unsigned NOT NULL DEFAULT '2025'",
+                "after": "updated_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`tahun`,`kode`)",
+            "KEY `kriteria_subkomponen_id_foreign` (`subkomponen_id`)",
+            "KEY `lke_kriteria_tahun_idx` (`tahun`)",
+            "KEY `lke_kriteria_tahun_kode_idx` (`tahun`,`kode`)",
+            "KEY `lke_kriteria_tahun_subkomponen_foreign` (`tahun`,`subkomponen_id`)",
+            "CONSTRAINT `lke_kriteria_tahun_subkomponen_foreign` FOREIGN KEY (`tahun`, `subkomponen_id`) REFERENCES `lke_subkomponen` (`tahun`, `kode`) ON DELETE CASCADE ON UPDATE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_kriteria` (\r\n  `id` bigint unsigned NOT NULL,\r\n  `subkomponen_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0',\r\n  `kode` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `nama` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `dokumen_bukti` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `langkah_kerja` text COLLATE utf8mb4_unicode_ci,\r\n  `kode_bukti` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `eselon_i` tinyint(1) NOT NULL DEFAULT '0',\r\n  `kejati` tinyint(1) NOT NULL DEFAULT '0',\r\n  `kejari` tinyint(1) NOT NULL DEFAULT '0',\r\n  `cabjari` tinyint(1) NOT NULL DEFAULT '0',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  `tahun` smallint unsigned NOT NULL DEFAULT '2025',\r\n  PRIMARY KEY (`tahun`,`kode`),\r\n  KEY `kriteria_subkomponen_id_foreign` (`subkomponen_id`),\r\n  KEY `lke_kriteria_tahun_idx` (`tahun`),\r\n  KEY `lke_kriteria_tahun_kode_idx` (`tahun`,`kode`),\r\n  KEY `lke_kriteria_tahun_subkomponen_foreign` (`tahun`,`subkomponen_id`),\r\n  CONSTRAINT `lke_kriteria_tahun_subkomponen_foreign` FOREIGN KEY (`tahun`, `subkomponen_id`) REFERENCES `lke_subkomponen` (`tahun`, `kode`) ON DELETE CASCADE ON UPDATE CASCADE\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lke_parameter": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "kriteria_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "id"
+            },
+            "nilai": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "kriteria_id"
+            },
+            "skor": {
+                "definition": "double(8,2) NOT NULL DEFAULT '0.00'",
+                "after": "nilai"
+            },
+            "keterangan": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "skor"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "keterangan"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            },
+            "tahun": {
+                "definition": "smallint unsigned NOT NULL DEFAULT '2025'",
+                "after": "updated_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "KEY `kriteria_id` (`kriteria_id`)",
+            "KEY `lke_parameter_tahun_idx` (`tahun`)",
+            "KEY `lke_parameter_tahun_kriteria_idx` (`tahun`,`kriteria_id`)",
+            "CONSTRAINT `lke_parameter_tahun_kriteria_foreign` FOREIGN KEY (`tahun`, `kriteria_id`) REFERENCES `lke_kriteria` (`tahun`, `kode`) ON DELETE RESTRICT ON UPDATE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_parameter` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `kriteria_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `nilai` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `skor` double(8,2) NOT NULL DEFAULT '0.00',\r\n  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  `tahun` smallint unsigned NOT NULL DEFAULT '2025',\r\n  PRIMARY KEY (`id`),\r\n  KEY `kriteria_id` (`kriteria_id`),\r\n  KEY `lke_parameter_tahun_idx` (`tahun`),\r\n  KEY `lke_parameter_tahun_kriteria_idx` (`tahun`,`kriteria_id`),\r\n  CONSTRAINT `lke_parameter_tahun_kriteria_foreign` FOREIGN KEY (`tahun`, `kriteria_id`) REFERENCES `lke_kriteria` (`tahun`, `kode`) ON DELETE RESTRICT ON UPDATE CASCADE\r\n) ENGINE=InnoDB AUTO_INCREMENT=309 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lke_penilaian_satker": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "id_satker": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "id"
+            },
+            "tahun": {
+                "definition": "smallint unsigned NOT NULL",
+                "after": "id_satker"
+            },
+            "komponen_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "tahun"
+            },
+            "subkomponen_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "komponen_id"
+            },
+            "kriteria_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "subkomponen_id"
+            },
+            "pm_parameter_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "kriteria_id"
+            },
+            "pm_nilai": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "pm_parameter_id"
+            },
+            "pm_skor": {
+                "definition": "double DEFAULT NULL",
+                "after": "pm_nilai"
+            },
+            "pm_catatan": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "pm_skor"
+            },
+            "pm_evaluator_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "pm_catatan"
+            },
+            "parameter_id": {
+                "definition": "bigint unsigned DEFAULT NULL",
+                "after": "pm_evaluator_id"
+            },
+            "nilai": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "parameter_id"
+            },
+            "skor": {
+                "definition": "double NOT NULL DEFAULT '0'",
+                "after": "nilai"
+            },
+            "catatan": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "skor"
+            },
+            "evaluator_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "catatan"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "evaluator_id"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `satker_tahun_kriteria_unique` (`id_satker`,`tahun`,`kriteria_id`)",
+            "KEY `lke_penilaian_satker_id_satker_index` (`id_satker`)",
+            "KEY `lke_penilaian_satker_tahun_index` (`tahun`)",
+            "KEY `lke_penilaian_satker_komponen_id_index` (`komponen_id`)",
+            "KEY `lke_penilaian_satker_subkomponen_id_index` (`subkomponen_id`)",
+            "KEY `lke_penilaian_satker_kriteria_id_index` (`kriteria_id`)",
+            "KEY `lke_penilaian_satker_parameter_id_index` (`parameter_id`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_penilaian_satker` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `id_satker` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `tahun` smallint unsigned NOT NULL,\r\n  `komponen_id` bigint unsigned DEFAULT NULL,\r\n  `subkomponen_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `kriteria_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `pm_parameter_id` bigint unsigned DEFAULT NULL,\r\n  `pm_nilai` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `pm_skor` double DEFAULT NULL,\r\n  `pm_catatan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `pm_evaluator_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `parameter_id` bigint unsigned DEFAULT NULL,\r\n  `nilai` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `skor` double NOT NULL DEFAULT '0',\r\n  `catatan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `evaluator_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `satker_tahun_kriteria_unique` (`id_satker`,`tahun`,`kriteria_id`),\r\n  KEY `lke_penilaian_satker_id_satker_index` (`id_satker`),\r\n  KEY `lke_penilaian_satker_tahun_index` (`tahun`),\r\n  KEY `lke_penilaian_satker_komponen_id_index` (`komponen_id`),\r\n  KEY `lke_penilaian_satker_subkomponen_id_index` (`subkomponen_id`),\r\n  KEY `lke_penilaian_satker_kriteria_id_index` (`kriteria_id`),\r\n  KEY `lke_penilaian_satker_parameter_id_index` (`parameter_id`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=655 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lke_satker_bukti": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "id_satker": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "id"
+            },
+            "komponen_id": {
+                "definition": "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "id_satker"
+            },
+            "sub_komponen_id": {
+                "definition": "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "komponen_id"
+            },
+            "kriteria_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "sub_komponen_id"
+            },
+            "kode_bukti": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "kriteria_id"
+            },
+            "buktidukung_id": {
+                "definition": "int DEFAULT NULL",
+                "after": "kode_bukti"
+            },
+            "link_bukti_dukung": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "buktidukung_id"
+            },
+            "tgl_pengisian": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "link_bukti_dukung"
+            },
+            "tahun": {
+                "definition": "smallint unsigned DEFAULT NULL",
+                "after": "tgl_pengisian"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "tahun"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "KEY `lke_satker_bukti_id_satker_index` (`id_satker`)",
+            "KEY `lke_satker_bukti_komponen_id_index` (`komponen_id`)",
+            "KEY `lke_satker_bukti_sub_komponen_id_index` (`sub_komponen_id`)",
+            "KEY `lke_satker_bukti_kriteria_id_index` (`kriteria_id`)",
+            "KEY `lke_satker_bukti_buktidukung_id_index` (`buktidukung_id`)",
+            "KEY `lke_satker_bukti_tahun_index` (`tahun`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_satker_bukti` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `id_satker` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `komponen_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `sub_komponen_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `kriteria_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `kode_bukti` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `buktidukung_id` int DEFAULT NULL,\r\n  `link_bukti_dukung` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `tgl_pengisian` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `tahun` smallint unsigned DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  KEY `lke_satker_bukti_id_satker_index` (`id_satker`),\r\n  KEY `lke_satker_bukti_komponen_id_index` (`komponen_id`),\r\n  KEY `lke_satker_bukti_sub_komponen_id_index` (`sub_komponen_id`),\r\n  KEY `lke_satker_bukti_kriteria_id_index` (`kriteria_id`),\r\n  KEY `lke_satker_bukti_buktidukung_id_index` (`buktidukung_id`),\r\n  KEY `lke_satker_bukti_tahun_index` (`tahun`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=61732 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lke_subkomponen": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": null
+            },
+            "komponen_id": {
+                "definition": "bigint unsigned NOT NULL",
+                "after": "id"
+            },
+            "kode": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "komponen_id"
+            },
+            "nama": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "kode"
+            },
+            "bobot": {
+                "definition": "decimal(5,2) NOT NULL DEFAULT '0.00'",
+                "after": "nama"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "bobot"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            },
+            "tahun": {
+                "definition": "smallint unsigned NOT NULL DEFAULT '2025'",
+                "after": "updated_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`tahun`,`kode`)",
+            "KEY `subkomponen_komponen_id_foreign` (`komponen_id`)",
+            "KEY `lke_subkomponen_tahun_idx` (`tahun`)",
+            "KEY `lke_subkomponen_tahun_kode_idx` (`tahun`,`kode`)",
+            "CONSTRAINT `FK_lke_subkomponen_lke_komponen` FOREIGN KEY (`komponen_id`) REFERENCES `lke_komponen` (`id`) ON DELETE CASCADE"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_subkomponen` (\r\n  `id` bigint unsigned NOT NULL,\r\n  `komponen_id` bigint unsigned NOT NULL,\r\n  `kode` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `nama` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `bobot` decimal(5,2) NOT NULL DEFAULT '0.00',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  `tahun` smallint unsigned NOT NULL DEFAULT '2025',\r\n  PRIMARY KEY (`tahun`,`kode`),\r\n  KEY `subkomponen_komponen_id_foreign` (`komponen_id`),\r\n  KEY `lke_subkomponen_tahun_idx` (`tahun`),\r\n  KEY `lke_subkomponen_tahun_kode_idx` (`tahun`,`kode`),\r\n  CONSTRAINT `FK_lke_subkomponen_lke_komponen` FOREIGN KEY (`komponen_id`) REFERENCES `lke_komponen` (`id`) ON DELETE CASCADE\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lke_subkomponen_koefisien": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "id_satker": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "id"
+            },
+            "tahun": {
+                "definition": "int NOT NULL",
+                "after": "id_satker"
+            },
+            "subkomponen_kode": {
+                "definition": "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "tahun"
+            },
+            "target_koefisien": {
+                "definition": "int NOT NULL DEFAULT '90'",
+                "after": "subkomponen_kode"
+            },
+            "uraian": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "target_koefisien"
+            },
+            "bukti_dukung": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "uraian"
+            },
+            "link_bukti_dukung": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "bukti_dukung"
+            },
+            "nilai": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "link_bukti_dukung"
+            },
+            "koefisien": {
+                "definition": "int NOT NULL DEFAULT '80'",
+                "after": "nilai"
+            },
+            "evaluator_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "koefisien"
+            },
+            "pm_target_koefisien": {
+                "definition": "int NOT NULL DEFAULT '90'",
+                "after": "evaluator_id"
+            },
+            "pm_uraian": {
+                "definition": "text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                "after": "pm_target_koefisien"
+            },
+            "pm_bukti_dukung": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "pm_uraian"
+            },
+            "pm_link_bukti_dukung": {
+                "definition": "varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "pm_bukti_dukung"
+            },
+            "pm_nilai": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "pm_link_bukti_dukung"
+            },
+            "pm_koefisien": {
+                "definition": "int NOT NULL DEFAULT '80'",
+                "after": "pm_nilai"
+            },
+            "pm_evaluator_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "pm_koefisien"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "pm_evaluator_id"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `satker_tahun_subkomp_unique` (`id_satker`,`tahun`,`subkomponen_kode`)",
+            "KEY `lke_subkomponen_koefisien_id_satker_index` (`id_satker`)",
+            "KEY `lke_subkomponen_koefisien_tahun_index` (`tahun`)",
+            "KEY `lke_subkomponen_koefisien_subkomponen_kode_index` (`subkomponen_kode`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lke_subkomponen_koefisien` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `id_satker` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `tahun` int NOT NULL,\r\n  `subkomponen_kode` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `target_koefisien` int NOT NULL DEFAULT '90',\r\n  `uraian` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `bukti_dukung` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `link_bukti_dukung` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `nilai` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `koefisien` int NOT NULL DEFAULT '80',\r\n  `evaluator_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `pm_target_koefisien` int NOT NULL DEFAULT '90',\r\n  `pm_uraian` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,\r\n  `pm_bukti_dukung` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `pm_link_bukti_dukung` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `pm_nilai` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `pm_koefisien` int NOT NULL DEFAULT '80',\r\n  `pm_evaluator_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `satker_tahun_subkomp_unique` (`id_satker`,`tahun`,`subkomponen_kode`),\r\n  KEY `lke_subkomponen_koefisien_id_satker_index` (`id_satker`),\r\n  KEY `lke_subkomponen_koefisien_tahun_index` (`tahun`),\r\n  KEY `lke_subkomponen_koefisien_subkomponen_kode_index` (`subkomponen_kode`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "lkjip_template_bindings": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "template_level": {
+                "definition": "tinyint unsigned NOT NULL",
+                "after": "id"
+            },
+            "binding_key": {
+                "definition": "varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "template_level"
+            },
+            "binding_type": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'scalar'",
+                "after": "binding_key"
+            },
+            "source_type": {
+                "definition": "varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "binding_type"
+            },
+            "source_key": {
+                "definition": "varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "source_type"
+            },
+            "marker": {
+                "definition": "varchar(220) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "source_key"
+            },
+            "formatter": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "marker"
+            },
+            "options": {
+                "definition": "json DEFAULT NULL",
+                "after": "formatter"
+            },
+            "sort_order": {
+                "definition": "int unsigned NOT NULL DEFAULT '0'",
+                "after": "options"
+            },
+            "is_active": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '1'",
+                "after": "sort_order"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "is_active"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)",
+            "UNIQUE KEY `lkjip_template_binding_unique` (`template_level`,`binding_key`)",
+            "KEY `lkjip_template_binding_catalog_idx` (`template_level`,`is_active`,`sort_order`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `lkjip_template_bindings` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `template_level` tinyint unsigned NOT NULL,\r\n  `binding_key` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `binding_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'scalar',\r\n  `source_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `source_key` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `marker` varchar(220) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `formatter` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `options` json DEFAULT NULL,\r\n  `sort_order` int unsigned NOT NULL DEFAULT '0',\r\n  `is_active` tinyint(1) NOT NULL DEFAULT '1',\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`),\r\n  UNIQUE KEY `lkjip_template_binding_unique` (`template_level`,`binding_key`),\r\n  KEY `lkjip_template_binding_catalog_idx` (`template_level`,`is_active`,`sort_order`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=122 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    },
+    "measurement_thresholds": {
+        "columns": {
+            "id": {
+                "definition": "bigint unsigned NOT NULL AUTO_INCREMENT",
+                "after": null
+            },
+            "level_code": {
+                "definition": "int DEFAULT NULL",
+                "after": "id"
+            },
+            "satker_id": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "level_code"
+            },
+            "indikator_id": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "satker_id"
+            },
+            "indikator_type": {
+                "definition": "enum('kinerja','kepatuhan','kelembagaan') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'kinerja'",
+                "after": "indikator_id"
+            },
+            "measurement_unit": {
+                "definition": "varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL",
+                "after": "indikator_type"
+            },
+            "excellent_min": {
+                "definition": "decimal(10,2) NOT NULL COMMENT 'Minimum untuk excellent status'",
+                "after": "measurement_unit"
+            },
+            "good_min": {
+                "definition": "decimal(10,2) NOT NULL COMMENT 'Minimum untuk good status'",
+                "after": "excellent_min"
+            },
+            "fair_min": {
+                "definition": "decimal(10,2) NOT NULL COMMENT 'Minimum untuk fair status'",
+                "after": "good_min"
+            },
+            "poor_max": {
+                "definition": "decimal(10,2) NOT NULL COMMENT 'Maximum untuk poor status'",
+                "after": "fair_min"
+            },
+            "status_excellent": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Sempurna'",
+                "after": "poor_max"
+            },
+            "status_good": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Baik'",
+                "after": "status_excellent"
+            },
+            "status_fair": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Cukup'",
+                "after": "status_good"
+            },
+            "status_poor": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Perlu Perhatian'",
+                "after": "status_fair"
+            },
+            "weight": {
+                "definition": "decimal(5,2) NOT NULL DEFAULT '1.00'",
+                "after": "status_poor"
+            },
+            "effective_date": {
+                "definition": "date NOT NULL",
+                "after": "weight"
+            },
+            "deprecated_date": {
+                "definition": "date DEFAULT NULL",
+                "after": "effective_date"
+            },
+            "active": {
+                "definition": "tinyint(1) NOT NULL DEFAULT '1'",
+                "after": "deprecated_date"
+            },
+            "created_by": {
+                "definition": "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL",
+                "after": "active"
+            },
+            "created_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_by"
+            },
+            "updated_at": {
+                "definition": "timestamp NULL DEFAULT NULL",
+                "after": "created_at"
+            }
+        },
+        "indexes": [
+            "PRIMARY KEY (`id`)"
+        ],
+        "create_sql": "CREATE TABLE IF NOT EXISTS `measurement_thresholds` (\r\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\r\n  `level_code` int DEFAULT NULL,\r\n  `satker_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `indikator_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `indikator_type` enum('kinerja','kepatuhan','kelembagaan') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'kinerja',\r\n  `measurement_unit` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,\r\n  `excellent_min` decimal(10,2) NOT NULL COMMENT 'Minimum untuk excellent status',\r\n  `good_min` decimal(10,2) NOT NULL COMMENT 'Minimum untuk good status',\r\n  `fair_min` decimal(10,2) NOT NULL COMMENT 'Minimum untuk fair status',\r\n  `poor_max` decimal(10,2) NOT NULL COMMENT 'Maximum untuk poor status',\r\n  `status_excellent` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Sempurna',\r\n  `status_good` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Baik',\r\n  `status_fair` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Cukup',\r\n  `status_poor` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Perlu Perhatian',\r\n  `weight` decimal(5,2) NOT NULL DEFAULT '1.00',\r\n  `effective_date` date NOT NULL,\r\n  `deprecated_date` date DEFAULT NULL,\r\n  `active` tinyint(1) NOT NULL DEFAULT '1',\r\n  `created_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,\r\n  `created_at` timestamp NULL DEFAULT NULL,\r\n  `updated_at` timestamp NULL DEFAULT NULL,\r\n  PRIMARY KEY (`id`)\r\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+    }
+}

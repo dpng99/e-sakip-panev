@@ -41,7 +41,7 @@
             </div>
             <div class="sidebar-brand-text overflow-hidden">
                 <div class="d-flex align-items-center gap-1">
-                    <span class="fw-bold text-dark text-truncate" style="font-size: 0.98rem; letter-spacing: 0.5px;">PROSAKIP</span>
+                    <span class="fw-bold text-dark text-truncate" style="font-size: 0.98rem; letter-spacing: 0.5px;">E-SAKIP</span>
                     <span class="badge bg-warning text-dark px-1 py-0" style="font-size: 0.65rem; font-weight: 700;">RI</span>
                 </div>
                 <small class="text-muted d-block text-truncate" style="font-size: 0.72rem; margin-top: -2px;">Kejaksaan Agung RI</small>

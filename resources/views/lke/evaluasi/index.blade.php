@@ -808,14 +808,14 @@
                                                         $dashKode = str_replace('.', '-', $cr->kode);
 
                                                         // Status Hasil Evaluasi (JAMWAS / Kejati)
-                                                        $hasEvaluasi = $eval && !is_null($eval->parameter_id);
-                                                        $evalNilai = $hasEvaluasi ? $eval->nilai : null;
+                                                        $hasEvaluasi = $eval && (!is_null($eval->parameter_id) || !empty($eval->nilai));
+                                                        $evalNilai = $hasEvaluasi ? ($eval->nilai ?? ($eval->skor == 1 ? 'Terpenuhi' : 'Tidak Terpenuhi')) : null;
                                                         $evalSkor = $hasEvaluasi ? (float)$eval->skor : 0.00;
                                                         $evalCatatan = $hasEvaluasi ? $eval->catatan : '';
 
                                                         // Status Penilaian Mandiri (PM Satker)
-                                                        $hasPm = $eval && !is_null($eval->pm_parameter_id);
-                                                        $pmNilai = $hasPm ? $eval->pm_nilai : null;
+                                                        $hasPm = $eval && (!is_null($eval->pm_parameter_id) || !empty($eval->pm_nilai));
+                                                        $pmNilai = $hasPm ? ($eval->pm_nilai ?? ($eval->pm_skor == 1 ? 'Terpenuhi' : 'Tidak Terpenuhi')) : null;
                                                         $pmSkor = $hasPm ? (float)$eval->pm_skor : 0.00;
                                                         $pmCatatan = $hasPm ? $eval->pm_catatan : '';
                                                     @endphp
@@ -998,7 +998,7 @@
                                                             <div class="parameter-options-container mb-3">
                                                                 @foreach($cr->parameters as $p)
                                                                     @php
-                                                                        $isSelected = $hasEvaluasi && $eval->parameter_id == $p->id;
+                                                                        $isSelected = $hasEvaluasi && ($eval->parameter_id == $p->id || (empty($eval->parameter_id) && $eval->nilai === $p->nilai) || ($eval->nilai === $p->nilai && !empty($eval->nilai)));
                                                                         $isTerpenuhi = $p->nilai === 'Terpenuhi';
                                                                     @endphp
                                                                     <div class="form-check lke-param-option mb-2 option-box {{ $isSelected ? 'selected' : '' }} {{ $isSelected ? ($isTerpenuhi ? 'border-success bg-success-subtle' : 'border-danger bg-danger-subtle') : '' }}">
@@ -1069,7 +1069,7 @@
                                                             <div class="parameter-options-container mb-3">
                                                                 @foreach($cr->parameters as $p)
                                                                     @php
-                                                                        $isSelected = $hasPm && $eval->pm_parameter_id == $p->id;
+                                                                        $isSelected = $hasPm && ($eval->pm_parameter_id == $p->id || (empty($eval->pm_parameter_id) && $eval->pm_nilai === $p->nilai) || ($eval->pm_nilai === $p->nilai && !empty($eval->pm_nilai)));
                                                                         $isTerpenuhi = $p->nilai === 'Terpenuhi';
                                                                     @endphp
                                                                     <div class="form-check lke-param-option mb-2 option-box {{ $isSelected ? 'selected' : '' }} {{ $isSelected ? ($isTerpenuhi ? 'border-success bg-success-subtle' : 'border-danger bg-danger-subtle') : '' }}">

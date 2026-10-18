@@ -319,19 +319,11 @@ class LkeEvaluasiController extends Controller
             $activeMode = 'pm';
         }
 
-        // Fetch Komponen with Subkomponen and Kriteria
-        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-        $komponenList = LkeKomponen::where('tahun', $targetTahun)
-            ->with([
-                'subkomponen' => function ($q) use ($targetTahun) {
-                    $q->where('tahun', $targetTahun);
-                },
-                'subkomponen.kriteria' => function ($q) use ($targetTahun) {
-                    $q->where('tahun', $targetTahun);
-                },
-                'subkomponen.kriteria.parameters' => function ($q) use ($targetTahun) {
-                    $q->where('tahun', $targetTahun);
-                }
+        // Fetch Komponen with Subkomponen and Kriteria (Master structure is universal)
+        $komponenList = LkeKomponen::with([
+                'subkomponen',
+                'subkomponen.kriteria',
+                'subkomponen.kriteria.parameters'
             ])
             ->orderBy('no')
             ->get();
@@ -440,7 +432,9 @@ class LkeEvaluasiController extends Controller
             }
         }
 
-        $kriteria = LkeKriteria::with('subkomponen')->where('kode', $kriteriaId)->first();
+        $kriteria = LkeKriteria::with('subkomponen')
+            ->where('kode', $kriteriaId)
+            ->first();
 
         $sub = $kriteria ? $kriteria->subkomponen : null;
         $subkomponenId = $sub ? $sub->kode : ($kriteria ? $kriteria->subkomponen_id : null);
@@ -484,8 +478,6 @@ class LkeEvaluasiController extends Controller
         // pilihan gradasi/koefisien tinggi (> 80) otomatis di-reset ke default 80
         $autoResetKoef = false;
         if ($subkomponenId) {
-            $targetTahun = LkeParameter::where('tahun', $tahun)->exists() ? $tahun : 2025;
-
             // Periksa apakah subkomponen ini bagian dari pasangan B & C
             $isSubB = str_ends_with($subkomponenId, '.B');
             $isSubC = str_ends_with($subkomponenId, '.C');
@@ -656,7 +648,6 @@ class LkeEvaluasiController extends Controller
         // GERBANG 100% MUTLAK:
         // Jika berpasangan (X.B & X.C), KEDUA subkomponen harus 100% terpenuhi
         // Jika mandiri (misal X.A), subkomponen tersebut harus 100% terpenuhi
-        $targetSubIds = LkeSubkomponen::whereIn('kode', $targetCodes)->pluck('id');
         $kriteriaCheck = LkeKriteria::where(function($q) use ($targetCodes, $targetSubIds) {
             $q->whereIn('subkomponen_id', $targetSubIds)
               ->orWhereIn('subkomponen_id', $targetCodes);
@@ -840,10 +831,9 @@ class LkeEvaluasiController extends Controller
             ->get()
             ->keyBy('subkomponen_kode');
 
-        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-        $komponenList = LkeKomponen::where('tahun', $targetTahun)->orderBy('no')->get();
-        $subkomponenList = LkeSubkomponen::where('tahun', $targetTahun)->orderBy('id')->get();
-        $allKriteria = LkeKriteria::where('tahun', $targetTahun)->with('subkomponen')->orderBy('id')->get();
+        $komponenList = LkeKomponen::orderBy('no')->get();
+        $subkomponenList = LkeSubkomponen::orderBy('id')->get();
+        $allKriteria = LkeKriteria::with('subkomponen')->orderBy('id')->get();
 
         $subkomponenScores = [];
         $komponenScores = [];
