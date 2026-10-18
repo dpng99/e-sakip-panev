@@ -32,6 +32,114 @@ use App\Http\Controllers\HapusFileController;
 use App\Http\Controllers\RestoreFileController;
 use App\Http\Controllers\BackupFileController;
 
+// === Helper CPanel Setup & Diagnostic (Protected with Secret Key) ===
+Route::get('/cpanel-setup', function (\Illuminate\Http\Request $request) {
+    if ($request->query('key') !== 'prosakip2026') {
+        abort(403, 'Akses ditolak. Parameter key tidak valid.');
+    }
+
+    $action = $request->query('action');
+    $actionResult = null;
+
+    if ($action === 'clear-cache') {
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        $actionResult = 'Cache berhasil dibersihkan: ' . \Illuminate\Support\Facades\Artisan::output();
+    } elseif ($action === 'storage-link') {
+        \Illuminate\Support\Facades\Artisan::call('storage:link');
+        $actionResult = 'Storage link: ' . \Illuminate\Support\Facades\Artisan::output();
+    } elseif ($action === 'migrate') {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $actionResult = 'Migrate: ' . \Illuminate\Support\Facades\Artisan::output();
+    }
+
+    $dbStatus = 'OK';
+    $dbError = null;
+    $tablesCount = 0;
+    try {
+        $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $tables = \Illuminate\Support\Facades\DB::select('SHOW TABLES');
+        $tablesCount = count($tables);
+    } catch (\Throwable $e) {
+        $dbStatus = 'ERROR';
+        $dbError = $e->getMessage();
+    }
+
+    $storageWritable = is_writable(storage_path());
+    $cacheWritable = is_writable(base_path('bootstrap/cache'));
+    $publicUploadsWritable = is_writable(public_path('uploads'));
+
+    $currentUrl = $request->url();
+
+    return response('<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>CPanel Deployment Status - PROSAKIP</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; padding: 30px; color: #1e293b; }
+        .card { max-width: 700px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 24px; }
+        h1 { font-size: 20px; margin-top: 0; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
+        .item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .btn { display: inline-block; padding: 8px 16px; margin: 6px 4px 6px 0; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-warning { background: #d97706; }
+        .btn-warning:hover { background: #b45309; }
+        .alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
+        .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; word-break: break-all; }
+        pre { background: #0f172a; color: #f8fafc; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>PROSAKIP CPanel Diagnostic & Quick Setup</h1>
+        ' . ($actionResult ? '<div class="alert alert-info"><strong>Hasil Tindakan:</strong><br><pre>' . htmlspecialchars($actionResult) . '</pre></div>' : '') . '
+        ' . ($dbError ? '<div class="alert alert-error"><strong>Database Error:</strong><br>' . htmlspecialchars($dbError) . '</div>' : '') . '
+        
+        <div class="item">
+            <span>Koneksi Database (' . htmlspecialchars(config('database.connections.mysql.database')) . ')</span>
+            <span class="badge ' . ($dbStatus === 'OK' ? 'badge-success' : 'badge-danger') . '">' . $dbStatus . ' (' . $tablesCount . ' tabel)</span>
+        </div>
+        <div class="item">
+            <span>Storage Permission (storage/)</span>
+            <span class="badge ' . ($storageWritable ? 'badge-success' : 'badge-danger') . '">' . ($storageWritable ? 'Writable' : 'Not Writable') . '</span>
+        </div>
+        <div class="item">
+            <span>Bootstrap Cache Permission (bootstrap/cache/)</span>
+            <span class="badge ' . ($cacheWritable ? 'badge-success' : 'badge-danger') . '">' . ($cacheWritable ? 'Writable' : 'Not Writable') . '</span>
+        </div>
+        <div class="item">
+            <span>Uploads Directory (public/uploads/)</span>
+            <span class="badge ' . ($publicUploadsWritable ? 'badge-success' : 'badge-danger') . '">' . ($publicUploadsWritable ? 'Writable' : 'Not Writable') . '</span>
+        </div>
+        <div class="item">
+            <span>PHP Version</span>
+            <span class="badge badge-success">' . PHP_VERSION . '</span>
+        </div>
+        <div class="item">
+            <span>App Environment / Debug</span>
+            <span class="badge badge-success">' . config('app.env') . ' / debug=' . (config('app.debug') ? 'true' : 'false') . '</span>
+        </div>
+        <div class="item">
+            <span>App URL</span>
+            <span class="badge badge-success">' . config('app.url') . '</span>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <p style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Tindakan Cepat (Tanpa CMD):</p>
+            <a href="' . $currentUrl . '?key=prosakip2026&action=clear-cache" class="btn btn-warning">Bersihkan Cache (Optimize Clear)</a>
+            <a href="' . $currentUrl . '?key=prosakip2026&action=storage-link" class="btn">Buat Storage Link</a>
+            <a href="' . $currentUrl . '?key=prosakip2026&action=migrate" class="btn">Jalankan Migrasi Database</a>
+            <a href="' . url('/login-auto') . '" class="btn" style="background: #16a34a;">Buka Halaman Login</a>
+        </div>
+    </div>
+</body>
+</html>');
+});
+
 Route::get('/spip', function () {
     return view('spip'); // resources/views/spip.blade.php
 });
@@ -166,6 +274,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/upload/monev-renaksi', [EvaluasiController::class, 'uploadMonevRenaksi'])->name('upload.monev_renaksi');
     Route::post('/dokumen/verifikasi', [EvaluasiController::class, 'verifikasi'])->name('verifikasi.dokumen');
     Route::post('/dokumen/upload', [EvaluasiController::class, 'upload'])->name('upload.dokumen');
+    Route::post('/evaluasi/upload-bukti-direct', [EvaluasiController::class, 'uploadBuktiDirect'])->name('upload.bukti_direct');
     Route::delete('/lhe-akip/{id}', [EvaluasiController::class, 'deleteLheAkip'])->name('delete.lhe_akip');
     Route::get('/lhe-akip/detail-nilai', [EvaluasiController::class, 'getSatkerLheDetail'])->name('lhe.detail_nilai');
 

@@ -1123,7 +1123,7 @@
                 $('#form-target-ikp').show();
 
                 $.ajax({
-                    url: `/perencanaan/target-ikp/data/${satkerId}`,
+                    url: `{{ url('/perencanaan/target-ikp/data') }}/${encodeURIComponent(satkerId)}`,
                     method: 'GET',
                     success: function(data) {
                         if (!data || data.length === 0) {

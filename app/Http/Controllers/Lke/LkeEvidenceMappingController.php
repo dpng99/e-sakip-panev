@@ -45,29 +45,31 @@ class LkeEvidenceMappingController extends Controller
         $subkomponenFilter = $request->get('subkomponen_id');
         $search = $request->get('search');
 
+        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
+
         // Komponen list for filter
-        $komponenList = LkeKomponen::where('tahun', $tahun)
-            ->orWhere('tahun', 2025)
-            ->orderBy('id')
-            ->get();
+        $komponenList = LkeKomponen::where('tahun', $targetTahun)->orderBy('no')->get();
 
         // Subkomponen list
-        $subkomponenList = LkeSubkomponen::where('tahun', $tahun)
-            ->orWhere('tahun', 2025)
-            ->orderBy('id')
-            ->get();
+        $subkomponenList = LkeSubkomponen::where('tahun', $targetTahun)->orderBy('id')->get();
 
         // Query Kriteria
-        $kriteriaQuery = LkeKriteria::with(['subkomponen.komponen'])
-            ->where(function ($q) use ($tahun) {
-                $q->where('tahun', $tahun)->orWhere('tahun', 2025);
-            });
+        $kriteriaQuery = LkeKriteria::where('tahun', $targetTahun)->with(['subkomponen.komponen']);
 
         if ($subkomponenFilter) {
-            $kriteriaQuery->where('subkomponen_id', $subkomponenFilter);
+            $subObj = is_numeric($subkomponenFilter) ? LkeSubkomponen::find($subkomponenFilter) : LkeSubkomponen::where('kode', $subkomponenFilter)->first();
+            $kriteriaQuery->where(function($q) use ($subkomponenFilter, $subObj) {
+                $q->where('subkomponen_id', $subkomponenFilter);
+                if ($subObj) {
+                    $q->orWhere('subkomponen_id', $subObj->id)->orWhere('subkomponen_id', $subObj->kode);
+                }
+            });
         } elseif ($komponenFilter) {
-            $subIds = LkeSubkomponen::where('komponen_id', $komponenFilter)->pluck('kode');
-            $kriteriaQuery->whereIn('subkomponen_id', $subIds);
+            $subIds = LkeSubkomponen::where('komponen_id', $komponenFilter)->pluck('id');
+            $subKodes = LkeSubkomponen::where('komponen_id', $komponenFilter)->pluck('kode');
+            $kriteriaQuery->where(function($q) use ($subIds, $subKodes) {
+                $q->whereIn('subkomponen_id', $subIds)->orWhereIn('subkomponen_id', $subKodes);
+            });
         }
 
         if ($search) {
@@ -108,13 +110,7 @@ class LkeEvidenceMappingController extends Controller
     {
         $this->checkAdmin();
 
-        $tahun = session('tahun_terpilih') ?? date('Y');
-        $kriteria = LkeKriteria::where('kode', $kode)
-            ->where(function ($q) use ($tahun) {
-                $q->where('tahun', $tahun)->orWhere('tahun', 2025);
-            })
-            ->orderBy('tahun', 'desc')
-            ->firstOrFail();
+        $kriteria = LkeKriteria::where('kode', $kode)->firstOrFail();
         $selectedIds = $kriteria->bukti_dukung_ids;
 
         // Current mapped items
@@ -148,13 +144,7 @@ class LkeEvidenceMappingController extends Controller
             'langkah_kerja' => 'nullable|string',
         ]);
 
-        $tahun = session('tahun_terpilih') ?? date('Y');
-        $kriteria = LkeKriteria::where('kode', $kode)
-            ->where(function ($q) use ($tahun) {
-                $q->where('tahun', $tahun)->orWhere('tahun', 2025);
-            })
-            ->orderBy('tahun', 'desc')
-            ->firstOrFail();
+        $kriteria = LkeKriteria::where('kode', $kode)->firstOrFail();
         $buktiIds = $request->input('bukti_ids', []);
 
         // Sort IDs numerically
@@ -189,14 +179,17 @@ class LkeEvidenceMappingController extends Controller
             LkeGabungan::where('kriteria_id', $kode)->where('tahun', $nowYear)->delete();
 
             // Determine komponen_id and sub_komponen_id
-            $sub = LkeSubkomponen::where('kode', $kriteria->subkomponen_id)->first();
+            $sub = is_numeric($kriteria->subkomponen_id)
+                ? LkeSubkomponen::find($kriteria->subkomponen_id)
+                : LkeSubkomponen::where('kode', $kriteria->subkomponen_id)->first();
             $komponenId = $sub ? $sub->komponen_id : 1;
+            $subKode = $sub ? $sub->kode : $kriteria->subkomponen_id;
 
             $insertGabungan = [];
             foreach ($buktiIds as $bId) {
                 $insertGabungan[] = [
                     'komponen_id'     => $komponenId,
-                    'sub_komponen_id' => $kriteria->subkomponen_id,
+                    'sub_komponen_id' => $subKode,
                     'kriteria_id'     => $kriteria->kode,
                     'buktidukung_id'  => $bId,
                     'tahun'           => $nowYear,

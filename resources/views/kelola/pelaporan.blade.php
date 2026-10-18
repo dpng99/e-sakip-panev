@@ -626,7 +626,7 @@
                     $('#subindikator-wrapper').html('<p>Loading...</p>');
 
                     $.ajax({
-                        url: `/pelaporan/subindikator/${rumpun}`,
+                        url: `{{ url('/pelaporan/subindikator') }}/${encodeURIComponent(rumpun)}`,
                         data: {
                             triwulan
                         },
@@ -717,7 +717,7 @@
                     //     triwulan);
 
                     $.ajax({
-                        url: '/pelaporan/simpan-keterangan',
+                        url: '{{ url('/pelaporan/simpan-keterangan') }}',
                         method: 'POST',
                         data: {
                             indikator_id: indikatorId,
@@ -795,7 +795,7 @@
                     $('#ikp-subindikator-wrapper').html('<div class="text-center py-4"><div class="spinner-border text-success" role="status"></div><p class="mt-2">Memuat data IKP...</p></div>');
 
                     $.ajax({
-                        url: `/pelaporan/ikp-data/${satkerId}`,
+                        url: `{{ url('/pelaporan/ikp-data') }}/${encodeURIComponent(satkerId)}`,
                         data: {
                             triwulan: triwulan
                         },
@@ -911,7 +911,7 @@
                     btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
 
                     $.ajax({
-                        url: '/pelaporan/simpan-ikp-keterangan',
+                        url: '{{ url('/pelaporan/simpan-ikp-keterangan') }}',
                         method: 'POST',
                         data: {
                             ikp_id: ikpId,

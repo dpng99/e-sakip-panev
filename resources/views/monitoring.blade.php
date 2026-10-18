@@ -189,7 +189,7 @@
             function loadSubindikator(rumpun, tw) {
                 $("#subindikator-wrapper").html('<div class="text-muted">Memuat data...</div>');
                 $.ajax({
-                    url: "/monitoring/subindikator2/" + rumpun,
+                    url: "{{ url('/monitoring/subindikator2') }}/" + encodeURIComponent(rumpun),
                     data: {
                         triwulan: tw,
                         id_satker: idSatker
@@ -253,7 +253,7 @@
 
             function loadSaspro(idSatker, idKejati, tahun, level) {
                 $.ajax({
-                    url: `/capaian/saspro/all/${idSatker}/${idKejati}/${tahun}/${level}`,
+                    url: `{{ url('/capaian/saspro/all') }}/${encodeURIComponent(idSatker)}/${encodeURIComponent(idKejati)}/${encodeURIComponent(tahun)}/${encodeURIComponent(level)}`,
                     method: "GET",
                     dataType: "json",
                     success: function(res) {

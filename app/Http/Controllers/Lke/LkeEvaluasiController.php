@@ -333,7 +333,7 @@ class LkeEvaluasiController extends Controller
                     $q->where('tahun', $targetTahun);
                 }
             ])
-            ->orderBy('id')
+            ->orderBy('no')
             ->get();
 
         // Fetch existing evaluations for this satker and tahun
@@ -440,14 +440,11 @@ class LkeEvaluasiController extends Controller
             }
         }
 
-        $kriteria = LkeKriteria::where('kode', $kriteriaId)->first();
+        $kriteria = LkeKriteria::with('subkomponen')->where('kode', $kriteriaId)->first();
 
-        $subkomponenId = $kriteria ? $kriteria->subkomponen_id : null;
-        $komponenId = null;
-        if ($subkomponenId) {
-            $sub = LkeSubkomponen::where('kode', $subkomponenId)->first();
-            $komponenId = $sub ? $sub->komponen_id : null;
-        }
+        $sub = $kriteria ? $kriteria->subkomponen : null;
+        $subkomponenId = $sub ? $sub->kode : ($kriteria ? $kriteria->subkomponen_id : null);
+        $komponenId = $sub ? $sub->komponen_id : null;
 
         if ($tahap === 'pm') {
             // Simpan penilaian mandiri (PM)
@@ -487,7 +484,7 @@ class LkeEvaluasiController extends Controller
         // pilihan gradasi/koefisien tinggi (> 80) otomatis di-reset ke default 80
         $autoResetKoef = false;
         if ($subkomponenId) {
-            $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
+            $targetTahun = LkeParameter::where('tahun', $tahun)->exists() ? $tahun : 2025;
 
             // Periksa apakah subkomponen ini bagian dari pasangan B & C
             $isSubB = str_ends_with($subkomponenId, '.B');
@@ -498,7 +495,11 @@ class LkeEvaluasiController extends Controller
                 $subCodesToCheck = ["{$prefix}.B", "{$prefix}.C"];
             }
 
-            $allSubKriteria = LkeKriteria::where('tahun', $targetTahun)->whereIn('subkomponen_id', $subCodesToCheck)->get();
+            $subIdsToCheck = LkeSubkomponen::whereIn('kode', $subCodesToCheck)->pluck('id');
+            $allSubKriteria = LkeKriteria::where(function($q) use ($subCodesToCheck, $subIdsToCheck) {
+                $q->whereIn('subkomponen_id', $subIdsToCheck)
+                  ->orWhereIn('subkomponen_id', $subCodesToCheck);
+            })->get();
             $subEvals = LkePenilaianSatker::where('id_satker', $idSatker)
                 ->where('tahun', $tahun)
                 ->whereIn('kriteria_id', $allSubKriteria->pluck('kode'))
@@ -506,7 +507,10 @@ class LkeEvaluasiController extends Controller
 
             $isAnySubIncomplete = false;
             foreach ($subCodesToCheck as $chkCode) {
-                $chkKriteria = $allSubKriteria->where('subkomponen_id', $chkCode);
+                $chkSub = LkeSubkomponen::where('kode', $chkCode)->first();
+                $chkKriteria = $allSubKriteria->filter(function($cr) use ($chkCode, $chkSub) {
+                    return $cr->subkomponen_id == $chkCode || ($chkSub && $cr->subkomponen_id == $chkSub->id);
+                });
                 $totCrit = $chkKriteria->count();
                 $terpenuhi = 0;
                 foreach ($chkKriteria as $cr) {
@@ -652,8 +656,11 @@ class LkeEvaluasiController extends Controller
         // GERBANG 100% MUTLAK:
         // Jika berpasangan (X.B & X.C), KEDUA subkomponen harus 100% terpenuhi
         // Jika mandiri (misal X.A), subkomponen tersebut harus 100% terpenuhi
-        $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-        $kriteriaCheck = LkeKriteria::where('tahun', $targetTahun)->whereIn('subkomponen_id', $targetCodes)->get();
+        $targetSubIds = LkeSubkomponen::whereIn('kode', $targetCodes)->pluck('id');
+        $kriteriaCheck = LkeKriteria::where(function($q) use ($targetCodes, $targetSubIds) {
+            $q->whereIn('subkomponen_id', $targetSubIds)
+              ->orWhereIn('subkomponen_id', $targetCodes);
+        })->get();
         $evalsCheck = LkePenilaianSatker::where('id_satker', $idSatker)
             ->where('tahun', $tahun)
             ->whereIn('kriteria_id', $kriteriaCheck->pluck('kode'))
@@ -661,7 +668,10 @@ class LkeEvaluasiController extends Controller
 
         $incompleteMessages = [];
         foreach ($targetCodes as $sCode) {
-            $subCrits = $kriteriaCheck->where('subkomponen_id', $sCode);
+            $tSub = LkeSubkomponen::where('kode', $sCode)->first();
+            $subCrits = $kriteriaCheck->filter(function($cr) use ($sCode, $tSub) {
+                return $cr->subkomponen_id == $sCode || ($tSub && $cr->subkomponen_id == $tSub->id);
+            });
             $totalCnt = $subCrits->count();
             $terpCnt = 0;
             foreach ($subCrits as $cr) {
@@ -831,17 +841,20 @@ class LkeEvaluasiController extends Controller
             ->keyBy('subkomponen_kode');
 
         $targetTahun = LkeKomponen::where('tahun', $tahun)->exists() ? $tahun : 2025;
-        $komponenList = LkeKomponen::where('tahun', $targetTahun)->orderBy('id')->get();
+        $komponenList = LkeKomponen::where('tahun', $targetTahun)->orderBy('no')->get();
         $subkomponenList = LkeSubkomponen::where('tahun', $targetTahun)->orderBy('id')->get();
-        $allKriteria = LkeKriteria::where('tahun', $targetTahun)->orderBy('id')->get();
+        $allKriteria = LkeKriteria::where('tahun', $targetTahun)->with('subkomponen')->orderBy('id')->get();
 
         $subkomponenScores = [];
         $komponenScores = [];
         $grandTotalPk = 0;
         $grandTotalPm = 0;
 
-        // Group kriteria by subkomponen_id
-        $kriteriaBySub = $allKriteria->groupBy('subkomponen_id');
+        // Group kriteria by subkomponen (supporting both numeric ID and string kode)
+        $kriteriaBySubId = $allKriteria->groupBy('subkomponen_id');
+        $kriteriaBySubKode = $allKriteria->groupBy(function($c) {
+            return $c->subkomponen ? $c->subkomponen->kode : $c->subkomponen_id;
+        });
 
         $totalPkEvaluated = 0;
         $totalPmEvaluated = 0;
@@ -856,7 +869,9 @@ class LkeEvaluasiController extends Controller
         // Pass 1: Kumpulkan statistik kriteria terpenuhi dan kelengkapan dasar untuk setiap subkomponen
         $subStats = [];
         foreach ($subkomponenList as $sub) {
-            $crits = $kriteriaBySub->get($sub->kode, collect());
+            $crits = $kriteriaBySubKode->get($sub->kode)
+                ?? $kriteriaBySubId->get($sub->id)
+                ?? $kriteriaBySubId->get($sub->kode, collect());
             $totCnt = $crits->count();
             $terpEval = 0;
             $terpPm = 0;
@@ -919,7 +934,9 @@ class LkeEvaluasiController extends Controller
         }
 
         foreach ($subkomponenList as $sub) {
-            $crits = $kriteriaBySub->get($sub->kode, collect());
+            $crits = $kriteriaBySubKode->get($sub->kode)
+                ?? $kriteriaBySubId->get($sub->id)
+                ?? $kriteriaBySubId->get($sub->kode, collect());
             $subBobot = (float)($sub->bobot ?: ($defaultBobotMap[$sub->kode] ?? 0));
             $stats = $subStats[$sub->kode] ?? [
                 'total_cnt' => 0, 'terpenuhi_eval' => 0, 'terpenuhi_pm' => 0,
@@ -1095,6 +1112,8 @@ class LkeEvaluasiController extends Controller
             }
 
             $komponenScores[$komp->id] = [
+                'id'                    => $komp->id,
+                'no'                    => $komp->no,
                 'nama'                  => $komp->nama,
                 'skor'                  => round($kPkScore, 2),
                 'evaluasi_skor'         => round($kPkScore, 2),

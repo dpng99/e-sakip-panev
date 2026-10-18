@@ -37,3 +37,11 @@ alwaysApply: false
   - `tahun` dari `session('tahun_terpilih')`
   - `khusus` dari `session('tw4_khusus', false)`
 - Pada penyimpanan catatan Pelaporan (`simpanKeterangan`), jika baris pengukuran di bulan akhir triwulan belum tersedia, sistem wajib membuat baris pengukuran baru (`Pengukuran::create`) agar keterangan faktor penghambat dan langkah optimalisasi tidak hilang.
+
+## 4. Konsistensi Rumus Capaian Indikator (`FAVORABLE` vs `UNFAVORABLE`)
+- Untuk indikator Level 1 (`IndikatorKinerjaProgram`), perhitungan persentase capaian pada `PengukuranIkpController`, `PelaporanController`, dan `PelaporanIkp::hitungCapaian()` WAJIB memeriksa `sifat_node`:
+  - Jika `sifat_node === 'UNFAVORABLE'` (semakin kecil realisasi semakin baik): gunakan rumus `(target / realisasi) * 100` (atau `0` jika realisasi `<= 0`).
+  - Selain itu (`FAVORABLE` / `AVERAGE` / `RATIO_PERCENTAGE` / `INDEX_SCORE`): gunakan rumus `(realisasi / target) * 100`.
+
+## 5. Standar Direktori Fisik Upload Dokumen Repository Satker
+- Seluruh fungsi upload dokumen operasional satker (Renstra, IKU, Renja, RKAKL, DIPA, Renaksi, PK, LKJIP, Rapat Staff EKA, Monev Renaksi, LHE, TL LHE) WAJIB menggunakan `public_path('uploads/repository/' . $idSatker)` (BUKAN `base_path(...)`) agar dapat diakses melalui `asset('uploads/repository/' . $idSatker . '/' . $filename)`.

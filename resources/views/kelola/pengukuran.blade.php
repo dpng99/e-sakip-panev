@@ -214,7 +214,7 @@
             $('.bidang-item').on('click', function() {
                 var rumpun = $(this).data('rumpun');
                 $.ajax({
-                    url: '/get-subindikator/' + rumpun,
+                    url: '{{ url('/get-subindikator') }}/' + encodeURIComponent(rumpun),
                     method: 'GET',
                     success: function(response) {
 
@@ -408,7 +408,7 @@ aturTriwulan();
 
                          // Ambil data pengukuran dari DB
 $.ajax({
-    url: '/get-pengukuran/' + indikator.id,
+    url: '{{ url('/get-pengukuran') }}/' + encodeURIComponent(indikator.id),
     method: 'GET',
     success: function(pengukuranData) {
         const bulanIndex = [

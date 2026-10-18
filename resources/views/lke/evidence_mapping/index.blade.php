@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
             modal.show();
 
             // Fetch detail from backend
-            fetch(`/lke/evidence-mapping/detail/${encodeURIComponent(currentKode)}`)
+            fetch(`{{ url('/lke/evidence-mapping/detail') }}/${encodeURIComponent(currentKode)}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const buktiArray = Array.from(selectedBuktiIds);
         const langkahKerjaVal = document.getElementById('modalLangkahKerja').value.trim();
 
-        fetch(`/lke/evidence-mapping/update/${encodeURIComponent(currentKode)}`, {
+        fetch(`{{ url('/lke/evidence-mapping/update') }}/${encodeURIComponent(currentKode)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

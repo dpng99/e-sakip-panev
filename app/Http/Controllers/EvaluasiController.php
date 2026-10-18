@@ -323,8 +323,11 @@ class EvaluasiController extends Controller
                 'subkomponen.kriteria' => function ($q) use ($targetTahun) {
                     $q->where('tahun', $targetTahun);
                 },
+                'subkomponen.kriteria.parameters' => function ($q) use ($targetTahun) {
+                    $q->where('tahun', $targetTahun);
+                }
             ])
-            ->orderBy('id')
+            ->orderBy('no')
             ->get();
 
         $satkerBukti = LkeEvidenceHelper::getUnifiedSatkerEvidences($idSatker, $tahun);
@@ -869,4 +872,468 @@ class EvaluasiController extends Controller
 
         return back()->with('success', 'Upload bukti dukung berhasil dan disinkronkan.');
     }
+
+    /**
+     * Upload langsung bukti dukung spesifik dari tab Bukti Dukung LKE Evaluasi AKIP.
+     * Melakukan sinkronisasi dua arah ke folder repository, tabel modul sumber,
+     * serta lke_satker_bukti dan bukti_dukung.
+     */
+    public function uploadBuktiDirect(Request $request)
+    {
+        $role = $this->getEvaluatorRole();
+        if ($role === 'jamwas' || $role === 'pengawasan_kejati') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Akun Pengawasan tidak berwenang mengunggah bukti dukung PM Satker.'
+            ], 403);
+        }
+
+        $request->validate([
+            'bukti_file'     => 'required|file|mimes:pdf|max:4096',
+            'bukti_id'       => 'required|integer',
+            'kriteria_kode'  => 'required|string',
+            'komponen_id'    => 'nullable',
+            'subkomponen_id' => 'nullable',
+        ]);
+
+        $tahun = (int)(session('tahun_terpilih') ?: date('Y'));
+        $tPrev = $tahun - 1;
+        $tPrev2 = $tahun - 2;
+        $idSatker = (string)session('id_satker');
+        $bId = (int)$request->input('bukti_id');
+        $kriteriaKode = trim($request->input('kriteria_kode'));
+        $idKomponen = $request->input('komponen_id');
+        $idSubKomponen = $request->input('subkomponen_id');
+
+        $tujuanPath = public_path("uploads/repository/{$idSatker}");
+        if (!file_exists($tujuanPath)) {
+            mkdir($tujuanPath, 0777, true);
+        }
+
+        $targetTahun = $tahun;
+        $targetTriwulan = null;
+        $moduleTable = null;
+        $idPerubahan = 0;
+        $fileName = null;
+
+        switch ($bId) {
+            case 1: // Renstra Satker
+                $moduleTable = 'sinori_sakip_renstra';
+                $idPeriode = ($tahun == 2024) ? 'P1' : 'P2';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $idPeriode)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "renstra_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 2: // Renja Satker
+                $moduleTable = 'sinori_sakip_renja';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "renja_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 3: // Renaksi Satker
+                $moduleTable = 'sinori_sakip_renaksi';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "renaksi_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 4: // RKAKL
+                $moduleTable = 'sinori_sakip_rkakl';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "rkakl_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 5: // DIPA
+                $moduleTable = 'sinori_sakip_dipa';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "dipa_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 6: // PK Satker T
+                $moduleTable = 'pk';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "pk_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 7: // PK Satker T-1
+                $moduleTable = 'pk';
+                $targetTahun = $tPrev;
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $targetTahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "pk_{$targetTahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 8: // IKU
+            case 9: // IKU / Penetapan Target Kinerja
+                $moduleTable = 'sinori_sakip_iku';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "IKU_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 10: // LKJiP TW 1
+                $moduleTable = 'sinori_sakip_lakip';
+                $targetTriwulan = 'TW 1';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->where('id_triwulan', $targetTriwulan)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lkjip_{$tahun}_{$idPerubahan}_{$targetTriwulan}.pdf";
+                break;
+
+            case 11: // LKJiP TW 2
+                $moduleTable = 'sinori_sakip_lakip';
+                $targetTriwulan = 'TW 2';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->where('id_triwulan', $targetTriwulan)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lkjip_{$tahun}_{$idPerubahan}_{$targetTriwulan}.pdf";
+                break;
+
+            case 12: // LKJiP TW 4 / Tahunan T-1
+                $moduleTable = 'sinori_sakip_lakip';
+                $targetTahun = $tPrev;
+                $targetTriwulan = 'Tahunan';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $targetTahun)
+                    ->whereIn('id_triwulan', ['TW 4', 'Tahunan'])
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lkjip_{$targetTahun}_{$idPerubahan}_Tahunan.pdf";
+                break;
+
+            case 13: // Rapat Staf EKA TW 1
+                $moduleTable = 'sinori_sakip_rastaff';
+                $targetTriwulan = 'TW 1';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->where('id_triwulan', $targetTriwulan)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "rastaff_{$tahun}_{$idPerubahan}_{$targetTriwulan}.pdf";
+                break;
+
+            case 14: // Rapat Staf EKA TW 2
+                $moduleTable = 'sinori_sakip_rastaff';
+                $targetTriwulan = 'TW 2';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->where('id_triwulan', $targetTriwulan)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "rastaff_{$tahun}_{$idPerubahan}_{$targetTriwulan}.pdf";
+                break;
+
+            case 15: // LHE AKIP T-1
+                $moduleTable = 'lhe';
+                $targetTahun = $tPrev;
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $targetTahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lhe_{$targetTahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 16: // LHE AKIP Tahun Berjalan
+                $moduleTable = 'lhe';
+                $targetTahun = $tahun;
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $targetTahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lhe_{$targetTahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 17: // TL LHE AKIP
+                $moduleTable = 'tl_lhe_akip';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "tl_lhe_{$tahun}_{$idPerubahan}.pdf";
+                break;
+
+            case 18: // Monev Renaksi TW 1
+                $moduleTable = 'sinori_sakip_renaksieval';
+                $targetTriwulan = 'TW 1';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->where('id_triwulan', $targetTriwulan)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "renaksieval_{$tahun}_{$idPerubahan}_{$targetTriwulan}.pdf";
+                break;
+
+            case 19: // Monev Renaksi TW 2
+                $moduleTable = 'sinori_sakip_renaksieval';
+                $targetTriwulan = 'TW 2';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $tahun)
+                    ->where('id_triwulan', $targetTriwulan)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "renaksieval_{$tahun}_{$idPerubahan}_{$targetTriwulan}.pdf";
+                break;
+
+            case 20: // Pohon Kinerja
+                $fileName = "pohon_kinerja_{$tahun}.pdf";
+                break;
+
+            case 21: // Renstra Lembaga
+                $fileName = "renstra_lembaga_{$tahun}.pdf";
+                break;
+
+            case 22: // LKJiP T-2
+                $moduleTable = 'sinori_sakip_lakip';
+                $targetTahun = $tPrev2;
+                $targetTriwulan = 'Tahunan';
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $targetTahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lkjip_{$targetTahun}_{$idPerubahan}_Tahunan.pdf";
+                break;
+
+            case 23: // Sampel SKP
+                $fileName = "sampel_skp_{$tahun}.pdf";
+                break;
+
+            case 24: // SK Tim PM
+                $fileName = "sk_tim_pm_{$tahun}.pdf";
+                break;
+
+            case 25: // SK Tim Evaluator
+                $fileName = "sk_tim_evaluator_{$tahun}.pdf";
+                break;
+
+            case 26: // Daftar Hadir Tim PM / Evaluator
+                $fileName = "daftar_hadir_{$tahun}.pdf";
+                break;
+
+            case 27: // Notulensi Bimtek
+                $fileName = "notulensi_{$tahun}.pdf";
+                break;
+
+            case 28: // Pedoman 4 / Nota Dinas Sosialisasi AKIP
+                $fileName = "nodis_penyelenggaraan_{$tahun}.pdf";
+                break;
+
+            case 29: // Pedoman 4 / Nota Dinas Sosialisasi Evaluasi AKIP
+                $fileName = "nodis_evaluasi_{$tahun}.pdf";
+                break;
+
+            case 30: // Memorandum Kepala Satker Data Kinerja
+                $fileName = "memo_data_{$tahun}.pdf";
+                break;
+
+            case 31: // Nota Dinas Data Kinerja Antar Bidang
+                $fileName = "nodis_data_{$tahun}.pdf";
+                break;
+
+            case 32: // Reward & Punishment
+                $fileName = "reward_punishment_{$tahun}.pdf";
+                break;
+
+            case 33: // Sampel Usulan Promosi / Mutasi / SKP Clearance
+                $fileName = "sampel_rekom_{$tahun}.pdf";
+                break;
+
+            case 34: // SS Publikasi Perencanaan
+                $fileName = "ss_perencanaan_{$tahun}.pdf";
+                break;
+
+            case 35: // SS Publikasi Website
+                $fileName = "ss_laporan_web_{$tahun}.pdf";
+                break;
+
+            case 36: // SS Publikasi ESR / SICANA
+                $fileName = "ss_laporan_app_{$tahun}.pdf";
+                break;
+
+            case 37: // Pengantar LKJiP TW 1
+                $fileName = "tar_lkjip_tw1_{$tahun}.pdf";
+                break;
+
+            case 38: // Pengantar LKJiP TW 2
+                $fileName = "tar_lkjip_tw2_{$tahun}.pdf";
+                break;
+
+            case 39: // Memo LKJiP TW 1
+                $fileName = "memo_lkjip_tw1_{$tahun}.pdf";
+                break;
+
+            case 40: // Memo LKJiP TW 2
+                $fileName = "memo_lkjip_tw2_{$tahun}.pdf";
+                break;
+
+            case 41: // Surat Penyampaian PM
+                $fileName = "tar_pm_{$tahun}.pdf";
+                break;
+
+            case 42: // Berita Acara Pra-Evaluasi
+                $fileName = "ba_praeval_{$tahun}.pdf";
+                break;
+
+            case 43: // Berita Acara Rapat Pleno
+                $fileName = "ba_pleno_{$tahun}.pdf";
+                break;
+
+            case 44: // LHE AKIP T-2 / T-3
+                $moduleTable = 'lhe';
+                $targetTahun = $tPrev2;
+                $latest = DB::table($moduleTable)
+                    ->where('id_satker', $idSatker)
+                    ->where('id_periode', $targetTahun)
+                    ->orderBy(DB::raw('CAST(id_perubahan AS UNSIGNED)'), 'desc')
+                    ->first();
+                $idPerubahan = ($latest && is_numeric($latest->id_perubahan)) ? (int)$latest->id_perubahan + 1 : 0;
+                $fileName = "lhe_{$targetTahun}_{$idPerubahan}.pdf";
+                break;
+
+            default:
+                // Cek master bukti dinamis dari DB
+                $mb = DB::table('lke_buktidukung')->where('id', $bId)->first();
+                if ($mb) {
+                    $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($mb->dokumen)));
+                    $slug = trim($slug, '_');
+                    if (!empty($mb->format_nama_file)) {
+                        $format = str_replace('{tahun}', (string)$tahun, $mb->format_nama_file);
+                        $format = preg_replace('/\{[^}]+\}/', '0', $format);
+                        $fileName = str_ends_with(strtolower($format), '.pdf') ? $format : ($format . '.pdf');
+                    } else {
+                        $fileName = "{$slug}_{$tahun}.pdf";
+                    }
+                    if (!empty($mb->tabel_sumber)) {
+                        $moduleTable = $mb->tabel_sumber;
+                    }
+                } else {
+                    $cleanKriteria = LkeEvidenceHelper::cleanKriteriaKode($kriteriaKode);
+                    $fileName = "bukti_{$cleanKriteria}_{$bId}_{$tahun}.pdf";
+                }
+                break;
+        }
+
+        // Simpan file fisik ke folder repository satker
+        $file = $request->file('bukti_file');
+        $file->move($tujuanPath, $fileName);
+
+        // Catat ke tabel modul asal jika terdefinisi
+        if ($moduleTable) {
+            try {
+                $idPeriodeVal = ($bId === 1 && $targetTahun == 2024)
+                    ? 'P1'
+                    : (($bId === 1) ? 'P2' : (string)$targetTahun);
+
+                $insertData = [
+                    'id_satker'    => $idSatker,
+                    'id_periode'   => $idPeriodeVal,
+                    'id_perubahan' => $idPerubahan,
+                    'id_filename'  => $fileName,
+                    'id_tglupload' => now()->format('d/m/Y h:i A'),
+                ];
+
+                if ($targetTriwulan) {
+                    $insertData['id_triwulan'] = $targetTriwulan;
+                }
+
+                if ($moduleTable === 'sinori_sakip_dipa') {
+                    $insertData['id_pagu'] = 0;
+                    $insertData['id_gakyankum'] = 0;
+                    $insertData['id_dukman'] = 0;
+                }
+
+                DB::table($moduleTable)->insert($insertData);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Sinkronisasi tabel modul {$moduleTable} gagal: " . $e->getMessage());
+            }
+        }
+
+        // Sinkronkan ke lke_satker_bukti & bukti_dukung
+        LkeEvidenceHelper::syncEvidenceRecord(
+            (string)$idSatker,
+            (string)$kriteriaKode,
+            $fileName,
+            $idKomponen,
+            $idSubKomponen,
+            $tahun
+        );
+
+        $fileUrl = asset("uploads/repository/{$idSatker}/{$fileName}");
+
+        if ($request->ajax() || $request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success'   => true,
+                'message'   => "Dokumen {$fileName} berhasil diunggah dan disinkronkan.",
+                'filename'  => $fileName,
+                'file_url'  => $fileUrl,
+                'bukti_id'  => $bId,
+                'kriteria'  => $kriteriaKode,
+            ]);
+        }
+
+        return back()->with('success', "Dokumen {$fileName} berhasil diunggah dan disinkronkan.");
+    }
 }
+

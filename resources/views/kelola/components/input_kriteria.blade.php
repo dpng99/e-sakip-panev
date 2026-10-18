@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
             subkomponenSelect.innerHTML = '<option value="">Memuat data subkomponen...</option>';
             subkomponenSelect.disabled = true;
 
-            fetch('/get-subkomponen/' + komponenId)
+            fetch('{{ url('/get-subkomponen') }}/' + encodeURIComponent(komponenId))
                 .then(response => response.json())
                 .then(data => {
                     subkomponenSelect.innerHTML = '<option value="">-- Pilih Subkomponen --</option>';

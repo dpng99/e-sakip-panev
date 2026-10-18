@@ -429,7 +429,6 @@ class LkeEvidenceHelper
             [
                 'link_bukti_dukung' => $namaFile,
                 'tgl_pengisian'     => $nowStr,
-                'kode_bukti'        => $bId ? (string)$bId : null,
             ]
         );
 

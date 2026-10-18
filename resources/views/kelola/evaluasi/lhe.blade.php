@@ -143,7 +143,7 @@
                         @endphp
                         @foreach ($komponenScores as $kId => $kData)
                             @php
-                                $cfg = $komponenIcons[$kId] ?? ['icon' => 'bi-folder', 'color' => 'secondary'];
+                                $cfg = $komponenIcons[$kData['no'] ?? $kId] ?? ['icon' => 'bi-folder', 'color' => 'secondary'];
                                 $kSkor = $kData['evaluasi_skor'] ?? 0;
                                 $kMax = $kData['max_skor'] ?? 1;
                                 $kPersen = $kData['evaluasi_persentase'] ?? 0;

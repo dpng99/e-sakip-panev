@@ -252,7 +252,7 @@
                                                                                         || \App\Helpers\LkeEvidenceHelper::matchesBuktiId($item->link_bukti_dukung, (int)$bId);
                                                                                 });
                                                                             @endphp
-                                                                            <li class="d-flex align-items-center justify-content-between p-1.5 px-2 rounded-2 {{ $hasUploaded ? 'bg-white border border-success-subtle' : 'bg-white border border-danger-subtle' }}">
+                                                                            <li class="d-flex align-items-center justify-content-between p-1.5 px-2 rounded-2 {{ $hasUploaded ? 'bg-white border border-success-subtle' : 'bg-white border border-danger-subtle' }}" id="itemBukti-{{ $dashKode }}-{{ $bId }}">
                                                                                 <div class="text-xs d-flex align-items-center gap-1.5 me-2 text-truncate" title="{{ $docName }}">
                                                                                     <span class="badge {{ $hasUploaded ? 'bg-success' : 'bg-secondary' }} rounded-pill text-2xs px-1.5">#{{ $bId }}</span>
                                                                                     <span class="fw-semibold {{ $hasUploaded ? 'text-dark' : 'text-muted' }} text-truncate">{{ $docName }}</span>
@@ -269,9 +269,18 @@
                                                                                         <i class="bi bi-eye me-1"></i> Ada File
                                                                                     </a>
                                                                                 @else
-                                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2 text-nowrap">
-                                                                                        <i class="bi bi-x-circle me-1"></i> Belum Diupload
-                                                                                    </span>
+                                                                                    <button type="button" 
+                                                                                        class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2 text-nowrap btn-direct-upload"
+                                                                                        data-bukti-id="{{ $bId }}"
+                                                                                        data-bukti-nama="{{ $docName }}"
+                                                                                        data-kriteria-kode="{{ $cr->kode }}"
+                                                                                        data-dash-kode="{{ $dashKode }}"
+                                                                                        data-komponen-id="{{ $komp->id }}"
+                                                                                        data-subkomponen-id="{{ $sub->kode }}"
+                                                                                        title="Klik untuk mengunggah dokumen ini secara langsung"
+                                                                                        style="cursor: pointer; transition: all 0.2s; border-radius: 4px;">
+                                                                                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Belum Diupload — Unggah
+                                                                                    </button>
                                                                                 @endif
                                                                             </li>
                                                                         @endforeach
@@ -396,6 +405,65 @@
                 <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
                 <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" id="btnSubmitUpload">
                     <i class="bi bi-cloud-arrow-up me-1"></i> Simpan & Sinkronkan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Direct Upload Dokumen Bukti Dukung Spesifik -->
+<div class="modal fade" id="directUploadModal" tabindex="-1" aria-labelledby="directUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="directUploadForm" method="POST" action="{{ route('upload.bukti_direct') }}" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-3">
+            @csrf
+            <div class="modal-header bg-light py-3 border-bottom">
+                <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="directUploadModalLabel">
+                    <i class="bi bi-cloud-arrow-up-fill text-danger"></i> Unggah Berkas Bukti Dukung
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-light border shadow-2xs py-2 px-3 text-xs mb-3 rounded-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle-fill text-primary fs-5 flex-shrink-0"></i>
+                    <div>
+                        Unggah berkas untuk dokumen target berikut. Sistem akan otomatis menamai berkas, menyinkronkan ke tabel modul sumber, serta memperbarui bukti dukung LKE.
+                    </div>
+                </div>
+
+                <div class="mb-3 p-3 bg-light rounded-3 border">
+                    <div class="text-xs text-muted fw-semibold mb-1">Target Dokumen:</div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-secondary font-monospace" id="directModalBuktiIdBadge">#</span>
+                        <strong class="text-dark fs-6" id="directModalBuktiNama">-</strong>
+                    </div>
+                    <div class="text-xs text-muted">
+                        Kriteria: <span class="badge bg-dark font-monospace" id="directModalKriteriaBadge">-</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="directBuktiFileInput" class="form-label text-sm fw-semibold text-dark mb-1">
+                        Pilih Berkas PDF <span class="text-danger">*</span>
+                    </label>
+                    <input type="file" class="form-control text-sm" id="directBuktiFileInput" name="bukti_file" accept=".pdf" required>
+                    <div class="form-text text-xs text-muted mt-1">
+                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i>Format berkas .PDF, ukuran maksimal 4MB.
+                    </div>
+                </div>
+
+                <div id="directUploadErrorAlert" class="alert alert-danger py-2 px-3 text-xs mb-0 d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="directUploadErrorMsg"></span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 border-top">
+                <input type="hidden" name="bukti_id" id="directModalBuktiId">
+                <input type="hidden" name="kriteria_kode" id="directModalKriteriaKode">
+                <input type="hidden" name="komponen_id" id="directModalKomponenId">
+                <input type="hidden" name="subkomponen_id" id="directModalSubkomponenId">
+                <input type="hidden" id="directModalDashKode">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" id="btnSubmitDirectUpload">
+                    <i class="bi bi-cloud-arrow-up-fill"></i> <span>Unggah Dokumen</span>
                 </button>
             </div>
         </form>
@@ -570,6 +638,148 @@
                     uploadModal.show();
                 });
             });
+
+            // Handler Tombol Direct Upload Per Item Dokumen
+            document.querySelectorAll('.btn-direct-upload').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const bId = this.dataset.buktiId;
+                    const bNama = this.dataset.buktiNama;
+                    const kKode = this.dataset.kriteriaKode;
+                    const dKode = this.dataset.dashKode;
+                    const kompId = this.dataset.komponenId;
+                    const subId = this.dataset.subkomponenId;
+
+                    const badgeEl = document.getElementById('directModalBuktiIdBadge');
+                    const namaEl = document.getElementById('directModalBuktiNama');
+                    const kriteriaEl = document.getElementById('directModalKriteriaBadge');
+
+                    if (badgeEl) badgeEl.textContent = '#' + bId;
+                    if (namaEl) namaEl.textContent = bNama;
+                    if (kriteriaEl) kriteriaEl.textContent = kKode;
+
+                    const idInp = document.getElementById('directModalBuktiId');
+                    const kKodeInp = document.getElementById('directModalKriteriaKode');
+                    const dKodeInp = document.getElementById('directModalDashKode');
+                    const kompInp = document.getElementById('directModalKomponenId');
+                    const subInp = document.getElementById('directModalSubkomponenId');
+
+                    if (idInp) idInp.value = bId;
+                    if (kKodeInp) kKodeInp.value = kKode;
+                    if (dKodeInp) dKodeInp.value = dKode;
+                    if (kompInp) kompInp.value = kompId;
+                    if (subInp) subInp.value = subId;
+
+                    const fileInp = document.getElementById('directBuktiFileInput');
+                    if (fileInp) fileInp.value = '';
+
+                    const errAlert = document.getElementById('directUploadErrorAlert');
+                    if (errAlert) errAlert.classList.add('d-none');
+
+                    const directModalEl = document.getElementById('directUploadModal');
+                    if (directModalEl) {
+                        const directModal = new bootstrap.Modal(directModalEl);
+                        directModal.show();
+                    }
+                });
+            });
+
+            // Handler Form Submit Direct Upload
+            const directForm = document.getElementById('directUploadForm');
+            if (directForm) {
+                directForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const fileInput = document.getElementById('directBuktiFileInput');
+                    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                        alert('Silakan pilih berkas PDF terlebih dahulu.');
+                        return;
+                    }
+
+                    const submitBtn = document.getElementById('btnSubmitDirectUpload');
+                    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Mengunggah...';
+                        submitBtn.disabled = true;
+                    }
+
+                    const errorAlert = document.getElementById('directUploadErrorAlert');
+                    const errorMsg = document.getElementById('directUploadErrorMsg');
+                    if (errorAlert) errorAlert.classList.add('d-none');
+
+                    const formData = new FormData(this);
+
+                    fetch(this.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (submitBtn) {
+                            submitBtn.innerHTML = originalBtnHtml;
+                            submitBtn.disabled = false;
+                        }
+
+                        if (res.success) {
+                            const modalEl = document.getElementById('directUploadModal');
+                            if (modalEl) {
+                                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                                if (modalInstance) modalInstance.hide();
+                            }
+
+                            showToast(res.message || 'Dokumen berhasil diunggah dan disinkronkan!', true);
+
+                            // Perbarui tombol baris secara dinamis
+                            const bId = document.getElementById('directModalBuktiId').value;
+                            const dKode = document.getElementById('directModalDashKode').value;
+                            const targetLi = document.getElementById('itemBukti-' + dKode + '-' + bId);
+                            if (targetLi) {
+                                targetLi.className = 'd-flex align-items-center justify-content-between p-1.5 px-2 rounded-2 bg-white border border-success-subtle';
+                                const oldBtn = targetLi.querySelector('.btn-direct-upload');
+                                if (oldBtn) {
+                                    const newLink = document.createElement('a');
+                                    newLink.href = res.file_url;
+                                    newLink.target = '_blank';
+                                    newLink.className = 'badge bg-success-subtle text-success text-decoration-none border border-success-subtle hover-shadow py-1 px-2 text-nowrap link-has-file';
+                                    newLink.innerHTML = '<i class="bi bi-eye me-1"></i> Ada File';
+                                    oldBtn.parentNode.replaceChild(newLink, oldBtn);
+                                }
+                            }
+
+                            // Reload halaman secara halus setelah 1 detik agar seluruh persentase kriteria & indikator ter-update
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            if (errorAlert && errorMsg) {
+                                errorAlert.classList.remove('d-none');
+                                errorMsg.textContent = res.message || 'Gagal mengunggah berkas.';
+                            } else {
+                                alert(res.message || 'Gagal mengunggah berkas.');
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        if (submitBtn) {
+                            submitBtn.innerHTML = originalBtnHtml;
+                            submitBtn.disabled = false;
+                        }
+                        if (errorAlert && errorMsg) {
+                            errorAlert.classList.remove('d-none');
+                            errorMsg.textContent = 'Terjadi kesalahan sistem saat mengunggah berkas.';
+                        } else {
+                            alert('Terjadi kesalahan sistem saat mengunggah berkas.');
+                        }
+                    });
+                });
+            }
         });
     </script>
 @endpush

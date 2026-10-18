@@ -111,7 +111,7 @@ $(document).ready(function() {
         $('#form-pengukuran-ikp').show();
 
         $.ajax({
-            url: `/pengukuran-ikp/data/${satkerId}`,
+            url: `{{ url('/pengukuran-ikp/data') }}/${encodeURIComponent(satkerId)}`,
             method: 'GET',
             success: function(data) {
                 if (!data || data.length === 0) {

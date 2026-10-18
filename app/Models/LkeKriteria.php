@@ -29,11 +29,12 @@ class LkeKriteria extends Model
 
     public function parameters()
     {
-        $relation = $this->hasMany(LkeParameter::class, 'kriteria_id', 'kode');
-        if (!empty($this->tahun)) {
-            $relation->where('tahun', $this->tahun);
+        $rel = $this->hasMany(LkeParameter::class, 'kriteria_id', 'kode');
+        $targetYear = $this->tahun ?: (session()->has('tahun_terpilih') ? session('tahun_terpilih') : null);
+        if ($targetYear) {
+            $rel->where('lke_parameter.tahun', $targetYear);
         }
-        return $relation;
+        return $rel;
     }
 
     public function gabungan()
